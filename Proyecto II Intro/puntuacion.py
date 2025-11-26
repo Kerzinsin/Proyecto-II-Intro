@@ -1,97 +1,90 @@
+#Puntuación
+
 import json
 from datetime import datetime
 import os
 
-# Crear carpeta Info si no existe
-if not os.path.exists("Info"):
-    os.makedirs("Info")
+class Puntuacion:
+    def __init__(self, carpeta_info="Info"):
+        self.carpeta_info = carpeta_info
 
-# Rutas de los archivos JSON
-RUTA_ESCAPA = "Info/top5_escapa.json"
-RUTA_CAZADOR = "Info/top5_cazador.json"
-RUTA_HISTORIAL = "Info/historial.json"
+        if not os.path.exists(carpeta_info):
+            os.makedirs(carpeta_info)
 
+        self.ruta_escapa = os.path.join(carpeta_info, "top5_escapa.json")
+        self.ruta_cazador = os.path.join(carpeta_info, "top5_cazador.json")
+        self.ruta_historial = os.path.join(carpeta_info, "historial.json")
 
-# Función para cargar JSON
-def cargar_json(ruta):
-    if not os.path.exists(ruta):
+        self._asegurar_archivo(self.ruta_escapa)
+        self._asegurar_archivo(self.ruta_cazador)
+        self._asegurar_archivo(self.ruta_historial)
+
+    def _asegurar_archivo(self, ruta):
+        if not os.path.exists(ruta):
+            with open(ruta, "w") as f:
+                f.write("[]")
+
+    def _cargar_json(self, ruta):
+        with open(ruta, "r") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+
+    def _guardar_json(self, ruta, datos):
         with open(ruta, "w") as f:
-            f.write("[]")  # Crear JSON vacío si no existe
+            json.dump(datos, f, indent=4)
 
-    with open(ruta, "r") as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return []  # Si está vacío o da error, devolver lista vacía
+    def registrar_jugador(self, nombre):
+        historial = self._cargar_json(self.ruta_historial)
 
+        for jugador in historial:
+            if jugador["nombre"] == nombre:
+                return
 
+        historial.append({
+            "nombre": nombre,
+            "fecha_registro": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+        self._guardar_json(self.ruta_historial, historial)
 
-# Función para guardar JSON
-def guardar_json(ruta, datos):
-    with open(ruta, "w") as f:
-        json.dump(datos, f, indent=4)
+    def guardar_puntaje(self, nombre, puntaje, modo):
+        if modo == "escapa":
+            ruta = self.ruta_escapa
+        elif modo == "cazador":
+            ruta = self.ruta_cazador
+        else:
+            return
 
+        lista = self._cargar_json(ruta)
+        lista.append({
+            "nombre": nombre,
+            "puntaje": puntaje,
+            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
 
-# Registrar jugador en historial (solo nombre y fecha)
-def registrar_jugador(nombre):
-    historial = cargar_json(RUTA_HISTORIAL)
+        lista = sorted(lista, key=lambda x: x["puntaje"], reverse=True)[:5]
+        self._guardar_json(ruta, lista)
 
-    # Evitar nombres duplicados
-    for jugador in historial:
-        if jugador["nombre"] == nombre:
-            return  # No lo agrega si ya existe
-
-    historial.append({
-        "nombre": nombre,
-        "fecha_registro": datetime.now().strftime("%Y-%m-%d %H:%M")
-    })
-    guardar_json(RUTA_HISTORIAL, historial)
-
-
-# Guardar puntaje en el modo correcto (Escapa o Cazador)
-def guardar_puntaje(nombre, puntaje, modo):
-    if modo == "escapa":
-        ruta = RUTA_ESCAPA
-    elif modo == "cazador":
-        ruta = RUTA_CAZADOR
-    else:
-        return
-
-    lista = cargar_json(ruta)
-
-    # Agregar nuevo puntaje
-    lista.append({
-        "nombre": nombre,
-        "puntaje": puntaje,
-        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M")
-    })
-
-    # Ordenar de mayor a menor y dejar solo Top 5
-    lista = sorted(lista, key=lambda x: x["puntaje"], reverse=True)[:5]
-
-    guardar_json(ruta, lista)
+    def obtener_top(self, modo):
+        if modo == "escapa":
+            return self._cargar_json(self.ruta_escapa)
+        elif modo == "cazador":
+            return self._cargar_json(self.ruta_cazador)
+        return []
 
 
-# Obtener lista de puntajes
-def obtener_top(modo):
-    if modo == "escapa":
-        return cargar_json(RUTA_ESCAPA)
-    elif modo == "cazador":
-        return cargar_json(RUTA_CAZADOR)
-    return []
-
-
-# Prueba rápida (solo para consola)
 if __name__ == "__main__":
-    registrar_jugador("Juan")
-    guardar_puntaje("Juan", 350, "escapa")
-    guardar_puntaje("Pedro", 400, "escapa")
-    guardar_puntaje("Ana", 500, "cazador")
+    sistema = Puntuacion()
+    sistema.registrar_jugador("Juan")
+    sistema.guardar_puntaje("Juan", 350, "escapa")
+    sistema.guardar_puntaje("Pedro", 400, "escapa")
+    sistema.guardar_puntaje("Ana", 500, "cazador")
 
     print("Top Escapa:")
-    for p in obtener_top("escapa"):
+    for p in sistema.obtener_top("escapa"):
         print(p)
 
     print("\nTop Cazador:")
-    for p in obtener_top("cazador"):
+    for p in sistema.obtener_top("cazador"):
         print(p)
