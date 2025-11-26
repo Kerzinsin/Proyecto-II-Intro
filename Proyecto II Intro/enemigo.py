@@ -1,5 +1,7 @@
-from terreno import Camino, Liana
+#Enemigo
+
 import random
+from terreno import Camino, Liana
 
 class Enemigo:
     def __init__(self, fila, columna):
@@ -16,12 +18,10 @@ class Enemigo:
         return False
 
     def mover_hacia(self, jugador, mapa):
-        """Movimiento simple: si el jugador está cerca, se acerca."""
         jf, jc = jugador.obtener_posicion()
         df = jf - self.fila
         dc = jc - self.columna
 
-        # Movimiento horizontal o vertical preferente
         if abs(df) > abs(dc):
             paso = (1 if df > 0 else -1, 0)
         else:
