@@ -2,5 +2,13 @@
     {
         "nombre": "Juan",
         "fecha_registro": "2025-11-25 12:45"
+    },
+    {
+        "nombre": "Kerzin",
+        "fecha_registro": "2025-11-27 16:06"
+    },
+    {
+        "nombre": "Javier",
+        "fecha_registro": "2025-11-27 16:09"
     }
 ]

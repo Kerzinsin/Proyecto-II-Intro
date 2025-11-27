@@ -18,10 +18,10 @@ import random
 from pathlib import Path
 
 # Importar las clases del proyecto
-from mapa import Mapa
-from jugador import Jugador
-from enemigo import Enemigo
-from puntuacion import Puntuacion
+from Modelos.mapa import Mapa
+from Modelos.jugador import Jugador
+from Modelos.enemigo import Enemigo
+from Sistema.puntuacion import Puntuacion
 
 # Inicializar Pygame
 pygame.init()
