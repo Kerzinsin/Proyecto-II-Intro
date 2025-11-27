@@ -1,3 +1,5 @@
+#Modo cazador
+
 import time
 import random
 from Modelos.mapa import Mapa
@@ -19,31 +21,53 @@ class ModoCazador:
             for _ in range(3)
         ]
 
+        for enemigo in enemigos:
+            enemigo.iniciar_movimiento(mapa)
+
         puntaje = 0
         tiempo_limite = 120
         tiempo_inicio = time.time()
 
         print("\n=== MODO CAZADOR ===")
-        print("Atrapa enemigos (+100 pts), si escapan (-50 pts).\n")
+        print("Atrapa enemigos (+100), si escapan (-50).")
+        print("Puedes correr solo si tienes energía disponible.\n")
 
         while time.time() - tiempo_inicio < tiempo_limite:
             mapa.mostrar_con_jugador_enemigo(jugador, enemigos[0])
-            movimiento = input("\nMovimiento (arriba, abajo, izquierda, derecha): ").lower()
-            jugador.mover(movimiento, mapa)
+            print(f"Energía: {jugador.energia} | Puede correr: {jugador.puede_correr} | Vida: {jugador.vida}")
+
+            accion = input("\nMovimiento (arriba, abajo, izquierda, derecha, correr): ").lower()
+
+            if accion == "correr":
+                if jugador.correr(mapa):
+                    continue
+                else:
+                    continue  
+
+            else:
+                jugador.mover(accion, mapa)
 
             for enemigo in enemigos:
-                enemigo.mover_hacia(jugador, mapa)
-
                 if jugador.obtener_posicion() == enemigo.obtener_posicion():
-                    print("Enemigo atrapado. +100 puntos.")
+                    print("Enemigo atrapado. Pierdes 1 vida. +100 puntos.")
                     puntaje += 100
+                    jugador.vida -= 1
+
                     enemigo.fila = random.randint(0, mapa.filas - 1)
                     enemigo.columna = random.randint(0, mapa.columnas - 1)
+
+                    if jugador.vida <= 0:
+                        print("\nHas perdido todas tus vidas.")
+                        break
 
             if random.random() < 0.05:
                 print("Un enemigo escapó. -50 puntos.")
                 puntaje -= 50
 
         print("\nTiempo agotado.")
-        print(f"Puntaje final obtenido: {puntaje}")
+        print(f"Puntaje final: {puntaje}")
+
+        for enemigo in enemigos:
+            enemigo.activo = False
+
         self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, puntaje, "cazador")
