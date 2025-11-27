@@ -7,3 +7,5 @@ if __name__ == "__main__":
     controlador.iniciar_sesion()
     controlador.seleccionar_modo()
     controlador.mostrar_resultados()
+
+#estoy editando el archivo jugar.py?
