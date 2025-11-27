@@ -1,14 +1,7 @@
 """
-Juego Escapa del Laberinto - Versión Pygame CORREGIDA
+Juego Escapa del Laberinto
 Instituto Tecnológico de Costa Rica
 Proyecto 2 - Introducción a la Programación
-
-CORRECCIONES APLICADAS:
-1. Enemigos se mueven cada 1 segundo (no instantáneo)
-2. Cyan = Túneles (solo jugador)
-3. Verde oscuro = Lianas (solo enemigos, jugador NO puede entrar)
-4. Verde brillante = Salidas (máximo 2)
-5. Barra de energía visual implementada
 """
 
 import pygame
@@ -59,10 +52,7 @@ COLOR_ENEMIGO = ROJO
 COLOR_TRAMPA = AMARILLO
 COLOR_SALIDA = VERDE_BRILLANTE  # ✅ Verde brillante para salidas
 
-
 class JuegoPygame:
-    """Clase principal del juego con interfaz Pygame CORREGIDA"""
-    
     def __init__(self):
         """Inicializa el juego con Pygame"""
         self.ventana = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
@@ -71,7 +61,6 @@ class JuegoPygame:
         self.fuente = pygame.font.Font(None, 22)
         self.fuente_grande = pygame.font.Font(None, 36)
         self.fuente_titulo = pygame.font.Font(None, 48)
-        
         self.sistema_puntuacion = Puntuacion()
         self.estado = "menu_principal"
         self.nombre_jugador = ""
@@ -87,7 +76,7 @@ class JuegoPygame:
         self.mensaje = ""
         self.tiempo_mensaje = 0
         
-        # ✅ CORRECCIÓN: Control de velocidad de enemigos
+        # CORRECCIÓN: Control de velocidad de enemigos
         self.ultimo_movimiento_enemigos = time.time()
         self.intervalo_enemigos = 1.0  # 1 segundo entre movimientos
         
@@ -100,7 +89,6 @@ class JuegoPygame:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     ejecutando = False
-                
                 if self.estado == "menu_principal":
                     self.manejar_eventos_menu(evento)
                 elif self.estado == "registro":
@@ -120,7 +108,6 @@ class JuegoPygame:
             
             # Dibujar
             self.ventana.fill(NEGRO)
-            
             if self.estado == "menu_principal":
                 self.dibujar_menu_principal()
             elif self.estado == "registro":
@@ -136,7 +123,6 @@ class JuegoPygame:
             
             pygame.display.flip()
             self.reloj.tick(FPS)
-        
         pygame.quit()
         sys.exit()
     
@@ -162,7 +148,6 @@ class JuegoPygame:
             rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
             self.ventana.blit(texto, rect)
             y += 60
-        
         inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 550))
         self.ventana.blit(inst, rect_inst)
@@ -183,15 +168,12 @@ class JuegoPygame:
         titulo = self.fuente_grande.render("REGISTRO DE JUGADOR", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
         self.ventana.blit(titulo, rect_titulo)
-        
         instruccion = self.fuente.render("Ingresa tu nombre (min. 3 caracteres):", True, BLANCO)
         rect_inst = instruccion.get_rect(center=(ANCHO_VENTANA // 2, 300))
         self.ventana.blit(instruccion, rect_inst)
-        
         nombre_texto = self.fuente_grande.render(self.nombre_jugador + "_", True, AMARILLO)
         rect_nombre = nombre_texto.get_rect(center=(ANCHO_VENTANA // 2, 350))
         self.ventana.blit(nombre_texto, rect_nombre)
-        
         info = self.fuente.render("Presiona ENTER para continuar", True, GRIS)
         rect_info = info.get_rect(center=(ANCHO_VENTANA // 2, 450))
         self.ventana.blit(info, rect_info)
@@ -214,7 +196,6 @@ class JuegoPygame:
         titulo = self.fuente_grande.render("SELECCIONA DIFICULTAD", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
-        
         opciones = [
             ("1. FACIL", "Menos enemigos, más lentos - Multiplicador: x1.0"),
             ("2. NORMAL", "Balance de enemigos - Multiplicador: x1.5"),
@@ -293,7 +274,7 @@ class JuegoPygame:
         # Crear mapa
         self.mapa = Mapa(15, 20)
         
-        # ✅ CORRECCIÓN: Crear máximo 2 salidas
+        # Crear máximo 2 salidas
         self.crear_salidas()
         
         # Crear jugador
@@ -326,7 +307,7 @@ class JuegoPygame:
         self.estado = "jugando"
     
     def crear_salidas(self):
-        """✅ CORRECCIÓN: Crear máximo 2 salidas en el mapa"""
+        """Crear máximo 2 salidas en el mapa"""
         self.salidas = []
         
         # Primera salida: esquina inferior derecha
@@ -358,7 +339,6 @@ class JuegoPygame:
         """Maneja eventos durante el juego"""
         if evento.type == pygame.KEYDOWN:
             movido = False
-            
             if evento.key == pygame.K_UP or evento.key == pygame.K_w:
                 movido = self.jugador.mover("arriba", self.mapa)
             elif evento.key == pygame.K_DOWN or evento.key == pygame.K_s:
@@ -374,7 +354,6 @@ class JuegoPygame:
             elif evento.key == pygame.K_LSHIFT or evento.key == pygame.K_RSHIFT:
                 if self.jugador.correr(self.mapa):
                     self.mostrar_mensaje("¡Corriendo!", 0.5)
-            
             if movido:
                 # Verificar colisiones con trampas
                 if self.modo_actual == "escapa":
@@ -387,7 +366,7 @@ class JuegoPygame:
     
     def actualizar_juego(self):
         """Actualiza el estado del juego"""
-        # ✅ CORRECCIÓN: Mover enemigos solo cada X segundos
+        # Mover enemigos solo cada X segundos
         tiempo_actual = time.time()
         if tiempo_actual - self.ultimo_movimiento_enemigos >= self.intervalo_enemigos:
             self.mover_enemigos()
@@ -415,7 +394,6 @@ class JuegoPygame:
                     enemigo.huir_de(self.jugador, self.mapa)
     
     def actualizar_modo_escapa(self):
-        """Actualiza la lógica del modo escapa"""
         # Verificar si llegó a alguna salida
         pos_jugador = self.jugador.obtener_posicion()
         if pos_jugador in self.salidas:
@@ -435,7 +413,6 @@ class JuegoPygame:
                         enemigo.fila, enemigo.columna = nueva_pos
     
     def actualizar_modo_cazador(self):
-        """Actualiza la lógica del modo cazador"""
         # Verificar si atrapó un enemigo
         pos_jugador = self.jugador.obtener_posicion()
         for enemigo in self.enemigos:
@@ -451,7 +428,6 @@ class JuegoPygame:
                     enemigo.eliminado = False
     
     def dibujar_juego(self):
-        """Dibuja el estado del juego"""
         # Calcular offset para centrar el mapa
         offset_x = 50
         offset_y = (ALTO_VENTANA - self.mapa.filas * TAMANO_CELDA) // 2
@@ -505,8 +481,6 @@ class JuegoPygame:
         y = offset_y + fila * TAMANO_CELDA
         pygame.draw.circle(self.ventana, COLOR_JUGADOR, 
                          (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
-        
-        # Dibujar HUD
         hud_x = offset_x + self.mapa.columnas * TAMANO_CELDA + 40
         self.dibujar_hud(hud_x, offset_y)
         
@@ -544,7 +518,7 @@ class JuegoPygame:
                 self.ventana.blit(superficie, (x, y_actual))
                 y_actual += 25
         
-        # ✅ CORRECCIÓN: BARRA DE ENERGÍA VISUAL
+        # BARRA DE ENERGÍA VISUAL
         y_actual += 10
         energia_texto = self.fuente.render("ENERGÍA:", True, BLANCO)
         self.ventana.blit(energia_texto, (x, y_actual))
@@ -574,14 +548,13 @@ class JuegoPygame:
         # Texto de porcentaje
         texto_porcentaje = self.fuente.render(f"{self.jugador.energia}%", True, BLANCO)
         self.ventana.blit(texto_porcentaje, (x + barra_ancho + 10, y_actual))
-        
         y_actual += 40
         
         # Controles
         y_actual += 20
         controles = [
             "CONTROLES:",
-            "WASD / Flechas: Mover",
+            "Flechas: Mover",
             "ESPACIO: Trampa",
             "SHIFT: Correr",
             "",
@@ -678,7 +651,6 @@ class JuegoPygame:
         for i, p in enumerate(self.sistema_puntuacion.obtener_top("cazador"), 1):
             print(f"{i}. {p['nombre']}: {p['puntaje']} pts")
         print("="*50 + "\n")
-
 
 if __name__ == "__main__":
     juego = JuegoPygame()

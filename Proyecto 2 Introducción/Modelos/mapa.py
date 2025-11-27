@@ -77,7 +77,6 @@ class Mapa:
                         if casilla.puede_pasar_jugador():
                             visitados.add((nueva_fila, nueva_columna))
                             cola.append((nueva_fila, nueva_columna))
-        
         return False
 
     def _crear_camino_forzado(self):
@@ -117,7 +116,6 @@ class Mapa:
                 
                 # Verificar si hay trampa
                 trampa_aqui = any(t['posicion'] == pos_actual for t in jugador.trampas_activas)
-                
                 if pos_actual == jugador.obtener_posicion():
                     fila_str += "J"
                 elif trampa_aqui:
@@ -141,8 +139,6 @@ class Mapa:
                 else:
                     fila_str += self.matriz[f][c].simbolo
             print(fila_str)
-        
-        # Mostrar leyenda
         print("\nLeyenda: J=Jugador | E=Enemigo | X=Trampa | #=Muro | T=Túnel | L=Liana | (espacio)=Camino")
 
     def mostrar_con_multiples_enemigos(self, jugador, enemigos):

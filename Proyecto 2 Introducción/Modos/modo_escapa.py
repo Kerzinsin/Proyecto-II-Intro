@@ -114,7 +114,7 @@ class ModoEscapa:
                     if jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
                         enemigo.eliminar()
                         enemigos_eliminados_trampa += 1
-                        print(f"💥 ¡Trampa activada! Enemigo eliminado (+50 puntos)")
+                        print(f" ¡Trampa activada! Enemigo eliminado (+50 puntos)")
             
             if jugador.obtener_posicion() == mapa.pos_salida:
                 tiempo_final = int(time.time() - tiempo_inicio)
