@@ -11,6 +11,7 @@ class Casilla:
     def puede_pasar_enemigo(self):
         return False
 
+
 class Camino(Casilla):
     def __init__(self):
         super().__init__(0, " ")
@@ -21,9 +22,11 @@ class Camino(Casilla):
     def puede_pasar_enemigo(self):
         return True
 
+
 class Muro(Casilla):
     def __init__(self):
         super().__init__(1, "#")
+
 
 class Tunel(Casilla):
     def __init__(self):
@@ -33,15 +36,15 @@ class Tunel(Casilla):
         return True
 
     def puede_pasar_enemigo(self):
-        return False
+        return False  # cazador NO puede entrar
+
 
 class Liana(Casilla):
     def __init__(self):
         super().__init__(3, "L")
 
     def puede_pasar_jugador(self):
-        return False
+        return False  # jugador NO puede nunca cruzar
 
     def puede_pasar_enemigo(self):
-        return True
-
+        return True  # solo enemigos pueden cruzar
