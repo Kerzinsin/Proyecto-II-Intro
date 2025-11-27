@@ -1,12 +1,14 @@
 #Enemigo
 
 import random
+import threading
 from Modelos.terreno import Camino, Liana
 
 class Enemigo:
     def __init__(self, fila, columna):
         self.fila = fila
         self.columna = columna
+        self.activo = True
 
     def obtener_posicion(self):
         return self.fila, self.columna
@@ -17,19 +19,24 @@ class Enemigo:
             return casilla_destino.puede_pasar_enemigo()
         return False
 
-    def mover_hacia(self, jugador, mapa):
-        jf, jc = jugador.obtener_posicion()
-        df = jf - self.fila
-        dc = jc - self.columna
+    def mover_aleatorio(self, mapa):
+        """El enemigo se mueve constantemente si hay casillas válidas."""
+        direcciones = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        random.shuffle(direcciones)  # Para variar el movimiento
 
-        if abs(df) > abs(dc):
-            paso = (1 if df > 0 else -1, 0)
-        else:
-            paso = (0, 1 if dc > 0 else -1)
+        for df, dc in direcciones:
+            nueva_fila = self.fila + df
+            nueva_columna = self.columna + dc
+            if self.puede_moverse(mapa, nueva_fila, nueva_columna):
+                self.fila = nueva_fila
+                self.columna = nueva_columna
+                break
 
-        nueva_fila = self.fila + paso[0]
-        nueva_columna = self.columna + paso[1]
+    def iniciar_movimiento(self, mapa):
+        """El enemigo se mueve constantemente."""
+        def movimiento_continuo():
+            while self.activo:
+                self.mover_aleatorio(mapa)
 
-        if self.puede_moverse(mapa, nueva_fila, nueva_columna):
-            self.fila = nueva_fila
-            self.columna = nueva_columna
+        hilo = threading.Thread(target=movimiento_continuo, daemon=True)
+        hilo.start()
