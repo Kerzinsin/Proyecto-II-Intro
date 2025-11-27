@@ -1,3 +1,5 @@
+#Modo Escapa
+
 from Modelos.mapa import Mapa
 from Modelos.jugador import Jugador
 from Modelos.enemigo import Enemigo
@@ -13,21 +15,28 @@ class ModoEscapa:
         enemigo = Enemigo(mapa.filas - 1, mapa.columnas - 1)
 
         print("\n=== MODO ESCAPA ===")
-        print("Objetivo: Llega a la salida sin ser atrapado.\n")
+        print("Objetivo: Escapa hacia la salida.")
+        print("Puedes correr solo si tienes energía.\n")
 
         while True:
             mapa.mostrar_con_jugador_enemigo(jugador, enemigo)
-            movimiento = input("\nMovimiento (arriba, abajo, izquierda, derecha): ").lower()
+            print(f"Energía: {jugador.energia} | Puede correr: {jugador.puede_correr} | Vida: {jugador.vida}")
 
-            jugador.mover(movimiento, mapa)
+            accion = input("\nMovimiento (arriba, abajo, izquierda, derecha, correr): ").lower()
+
+            if accion == "correr":
+                jugador.correr(mapa)
+            else:
+                jugador.mover(accion, mapa)
+
             enemigo.mover_hacia(jugador, mapa)
 
             if jugador.obtener_posicion() == (mapa.filas - 1, mapa.columnas - 1):
-                print("\nHas escapado exitosamente. Ganaste 200 puntos.")
+                print("\n¡Has escapado exitosamente! Ganaste 200 puntos.")
                 self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, 200, "escapa")
                 break
 
             if jugador.obtener_posicion() == enemigo.obtener_posicion():
-                print("\nFuiste atrapado. No obtienes puntos.")
+                print("\nFuiste atrapado.")
                 self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, 0, "escapa")
                 break
