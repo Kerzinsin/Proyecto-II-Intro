@@ -11,6 +11,10 @@ class Jugador:
         self.puede_correr = True
         self.en_tunel = False
         self.tiempo_en_tunel = None
+        self.vida = 3  
+        self.trampas_disponibles = 3  
+        self.trampas_activas = []  
+        self.cooldown_trampa = {}  
 
     def obtener_posicion(self):
         return self.fila, self.columna
@@ -56,6 +60,7 @@ class Jugador:
         return True
 
     def _gestionar_energia(self, casilla_actual):
+        """Gestiona la recuperación de energía"""
         if isinstance(casilla_actual, Tunel):
             if not self.en_tunel:
                 self.en_tunel = True
@@ -68,3 +73,45 @@ class Jugador:
         else:
             self.en_tunel = False
             self.tiempo_en_tunel = None
+            if self.energia < 100:
+                self.energia = min(100, self.energia + 5)  # Recupera 5 por movimiento
+
+    def colocar_trampa(self):
+        """Coloca una trampa en la posición actual del jugador"""
+        if len(self.trampas_activas) >= 3:
+            print("Ya tienes 3 trampas activas. Espera a que se usen.")
+            return False
+        
+        posicion = (self.fila, self.columna)
+        
+        # Verificar cooldown
+        tiempo_actual = time.time()
+        if posicion in self.cooldown_trampa:
+            if tiempo_actual - self.cooldown_trampa[posicion] < 5:
+                tiempo_restante = 5 - (tiempo_actual - self.cooldown_trampa[posicion])
+                print(f"Espera {tiempo_restante:.1f} segundos para colocar otra trampa aquí.")
+                return False
+        
+        # Colocar trampa
+        self.trampas_activas.append({
+            'posicion': posicion,
+            'tiempo': tiempo_actual
+        })
+        self.cooldown_trampa[posicion] = tiempo_actual
+        print(f"Trampa colocada en {posicion}. Trampas activas: {len(self.trampas_activas)}/3")
+        return True
+
+    def verificar_trampa_activada(self, posicion_enemigo):
+        """Verifica si un enemigo activó una trampa"""
+        for i, trampa in enumerate(self.trampas_activas):
+            if trampa['posicion'] == posicion_enemigo:
+                # Trampa activada
+                self.trampas_activas.pop(i)
+                print("¡Trampa activada! Enemigo eliminado.")
+                return True
+        return False
+
+    def perder_vida(self):
+        """Reduce una vida del jugador"""
+        self.vida -= 1
+        return self.vida <= 0  # Retorna True si murió
