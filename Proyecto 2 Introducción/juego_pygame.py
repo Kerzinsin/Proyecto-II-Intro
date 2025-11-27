@@ -1,30 +1,38 @@
 """
-Juego Escapa del Laberinto - Versión Pygame
-Interfaz gráfica para el proyecto de Introducción a la Programación
+Juego Escapa del Laberinto - Versión Pygame CORREGIDA
+Instituto Tecnológico de Costa Rica
+Proyecto 2 - Introducción a la Programación
+
+CORRECCIONES APLICADAS:
+1. Enemigos se mueven cada 1 segundo (no instantáneo)
+2. Cyan = Túneles (solo jugador)
+3. Verde oscuro = Lianas (solo enemigos, jugador NO puede entrar)
+4. Verde brillante = Salidas (máximo 2)
+5. Barra de energía visual implementada
 """
 
 import pygame
 import sys
 import time
+import random
 from pathlib import Path
 
-# Importar las clases del proyecto original
-sys.path.insert(0, str(Path(__file__).parent / "Proyecto 2 Introducción"))
-from Modelos.mapa import Mapa
-from Modelos.jugador import Jugador
-from Modelos.enemigo import Enemigo
-from Sistema.puntuacion import Puntuacion
+# Importar las clases del proyecto
+from mapa import Mapa
+from jugador import Jugador
+from enemigo import Enemigo
+from puntuacion import Puntuacion
 
 # Inicializar Pygame
 pygame.init()
 
 # Constantes de la ventana
-ANCHO_VENTANA = 1200
+ANCHO_VENTANA = 1400
 ALTO_VENTANA = 800
 FPS = 30
 
 # Tamaño de celda
-TAMANO_CELDA = 40
+TAMANO_CELDA = 35
 
 # Colores
 BLANCO = (255, 255, 255)
@@ -33,41 +41,42 @@ GRIS = (128, 128, 128)
 GRIS_OSCURO = (64, 64, 64)
 VERDE = (0, 255, 0)
 ROJO = (255, 0, 0)
-AZUL = (0, 0, 255)
+AZUL = (0, 100, 255)
 AMARILLO = (255, 255, 0)
 NARANJA = (255, 165, 0)
 MORADO = (128, 0, 128)
-CYAN = (0, 255, 255)
-VERDE_OSCURO = (0, 128, 0)
+CYAN = (0, 255, 255)  # TÚNELES (solo jugador)
+VERDE_OSCURO = (0, 100, 0)  # LIANAS (solo enemigos)
+VERDE_BRILLANTE = (0, 255, 100)  # SALIDAS
 
 # Colores para terrenos
 COLOR_CAMINO = BLANCO
 COLOR_MURO = GRIS_OSCURO
-COLOR_TUNEL = CYAN
-COLOR_LIANA = VERDE_OSCURO
+COLOR_TUNEL = CYAN  # ✅ Cyan para túneles
+COLOR_LIANA = VERDE_OSCURO  # ✅ Verde oscuro para lianas (NO el jugador)
 COLOR_JUGADOR = AZUL
 COLOR_ENEMIGO = ROJO
 COLOR_TRAMPA = AMARILLO
-COLOR_SALIDA = VERDE
+COLOR_SALIDA = VERDE_BRILLANTE  # ✅ Verde brillante para salidas
 
 
 class JuegoPygame:
-    """Clase principal del juego con interfaz Pygame"""
+    """Clase principal del juego con interfaz Pygame CORREGIDA"""
     
     def __init__(self):
         """Inicializa el juego con Pygame"""
         self.ventana = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
-        pygame.display.set_caption("Escapa del Laberinto")
+        pygame.display.set_caption("Escapa del Laberinto - TEC")
         self.reloj = pygame.time.Clock()
-        self.fuente = pygame.font.Font(None, 24)
+        self.fuente = pygame.font.Font(None, 22)
         self.fuente_grande = pygame.font.Font(None, 36)
         self.fuente_titulo = pygame.font.Font(None, 48)
         
         self.sistema_puntuacion = Puntuacion()
-        self.estado = "menu_principal"  # menu_principal, registro, seleccion_dificultad, seleccion_modo, jugando, game_over
+        self.estado = "menu_principal"
         self.nombre_jugador = ""
         self.dificultad = "normal"
-        self.modo_actual = None  # "escapa" o "cazador"
+        self.modo_actual = None
         
         # Variables del juego
         self.mapa = None
@@ -77,6 +86,10 @@ class JuegoPygame:
         self.puntaje = 0
         self.mensaje = ""
         self.tiempo_mensaje = 0
+        
+        # ✅ CORRECCIÓN: Control de velocidad de enemigos
+        self.ultimo_movimiento_enemigos = time.time()
+        self.intervalo_enemigos = 1.0  # 1 segundo entre movimientos
         
     def ejecutar(self):
         """Loop principal del juego"""
@@ -129,12 +142,14 @@ class JuegoPygame:
     
     def dibujar_menu_principal(self):
         """Dibuja el menú principal"""
-        # Título
         titulo = self.fuente_titulo.render("ESCAPA DEL LABERINTO", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
         
-        # Opciones
+        subtitulo = self.fuente.render("Instituto Tecnológico de Costa Rica", True, GRIS)
+        rect_sub = subtitulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
+        self.ventana.blit(subtitulo, rect_sub)
+        
         opciones = [
             "1. JUGAR",
             "2. VER PUNTAJES",
@@ -148,7 +163,6 @@ class JuegoPygame:
             self.ventana.blit(texto, rect)
             y += 60
         
-        # Instrucciones
         inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 550))
         self.ventana.blit(inst, rect_inst)
@@ -174,7 +188,6 @@ class JuegoPygame:
         rect_inst = instruccion.get_rect(center=(ANCHO_VENTANA // 2, 300))
         self.ventana.blit(instruccion, rect_inst)
         
-        # Mostrar nombre actual
         nombre_texto = self.fuente_grande.render(self.nombre_jugador + "_", True, AMARILLO)
         rect_nombre = nombre_texto.get_rect(center=(ANCHO_VENTANA // 2, 350))
         self.ventana.blit(nombre_texto, rect_nombre)
@@ -224,12 +237,15 @@ class JuegoPygame:
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
                 self.dificultad = "facil"
+                self.intervalo_enemigos = 1.5  # Más lento
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_2:
                 self.dificultad = "normal"
+                self.intervalo_enemigos = 1.0  # Normal
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_3:
                 self.dificultad = "dificil"
+                self.intervalo_enemigos = 0.7  # Más rápido
                 self.estado = "seleccion_modo"
     
     def dibujar_seleccion_modo(self):
@@ -274,19 +290,20 @@ class JuegoPygame:
     
     def inicializar_juego(self):
         """Inicializa el estado del juego"""
-        import random
-        
         # Crear mapa
-        self.mapa = Mapa(15, 20)  # Más pequeño para mejor visualización
+        self.mapa = Mapa(15, 20)
+        
+        # ✅ CORRECCIÓN: Crear máximo 2 salidas
+        self.crear_salidas()
         
         # Crear jugador
         self.jugador = Jugador(0, 0)
         
         # Configuración según dificultad
         config = {
-            "facil": {"enemigos": 2, "velocidad": 0.5},
-            "normal": {"enemigos": 3, "velocidad": 1.0},
-            "dificil": {"enemigos": 5, "velocidad": 1.5}
+            "facil": {"enemigos": 2},
+            "normal": {"enemigos": 3},
+            "dificil": {"enemigos": 5}
         }
         
         cfg = config[self.dificultad]
@@ -299,11 +316,43 @@ class JuegoPygame:
             if posiciones_validas:
                 pos = random.choice(posiciones_validas)
                 posiciones_validas.remove(pos)
-                self.enemigos.append(Enemigo(pos[0], pos[1], velocidad=cfg["velocidad"]))
+                enemigo = Enemigo(pos[0], pos[1])
+                enemigo.eliminado = False  # Asegurar inicialización
+                self.enemigos.append(enemigo)
         
         self.tiempo_inicio = time.time()
+        self.ultimo_movimiento_enemigos = time.time()
         self.puntaje = 0
         self.estado = "jugando"
+    
+    def crear_salidas(self):
+        """✅ CORRECCIÓN: Crear máximo 2 salidas en el mapa"""
+        self.salidas = []
+        
+        # Primera salida: esquina inferior derecha
+        salida1 = (self.mapa.filas - 1, self.mapa.columnas - 1)
+        self.salidas.append(salida1)
+        
+        # Segunda salida: posición aleatoria en el borde
+        bordes = []
+        # Borde superior
+        for col in range(self.mapa.columnas):
+            if (0, col) != (0, 0):  # No en inicio
+                bordes.append((0, col))
+        # Borde inferior
+        for col in range(self.mapa.columnas):
+            if (self.mapa.filas - 1, col) != salida1:
+                bordes.append((self.mapa.filas - 1, col))
+        # Borde izquierdo
+        for fila in range(1, self.mapa.filas - 1):
+            bordes.append((fila, 0))
+        # Borde derecho
+        for fila in range(1, self.mapa.filas - 1):
+            bordes.append((fila, self.mapa.columnas - 1))
+        
+        if bordes:
+            salida2 = random.choice(bordes)
+            self.salidas.append(salida2)
     
     def manejar_eventos_juego(self, evento):
         """Maneja eventos durante el juego"""
@@ -326,22 +375,24 @@ class JuegoPygame:
                 if self.jugador.correr(self.mapa):
                     self.mostrar_mensaje("¡Corriendo!", 0.5)
             
-            if movido and self.modo_actual == "escapa":
-                # Mover enemigos en modo escapa
-                for enemigo in self.enemigos:
-                    if not enemigo.eliminado:
-                        enemigo.mover_hacia(self.jugador, self.mapa)
-                
+            if movido:
                 # Verificar colisiones con trampas
-                for enemigo in self.enemigos:
-                    if not enemigo.eliminado:
-                        if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
-                            enemigo.eliminar()
-                            self.puntaje += 50
-                            self.mostrar_mensaje("¡Trampa activada! +50 puntos", 1.0)
+                if self.modo_actual == "escapa":
+                    for enemigo in self.enemigos:
+                        if not enemigo.eliminado:
+                            if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
+                                enemigo.eliminar()
+                                self.puntaje += 50
+                                self.mostrar_mensaje("¡Trampa activada! +50 puntos", 1.0)
     
     def actualizar_juego(self):
         """Actualiza el estado del juego"""
+        # ✅ CORRECCIÓN: Mover enemigos solo cada X segundos
+        tiempo_actual = time.time()
+        if tiempo_actual - self.ultimo_movimiento_enemigos >= self.intervalo_enemigos:
+            self.mover_enemigos()
+            self.ultimo_movimiento_enemigos = tiempo_actual
+        
         if self.modo_actual == "escapa":
             self.actualizar_modo_escapa()
         elif self.modo_actual == "cazador":
@@ -349,40 +400,60 @@ class JuegoPygame:
         
         # Verificar reaparición de enemigos
         for enemigo in self.enemigos:
-            enemigo.verificar_reaparicion(self.mapa)
+            if hasattr(enemigo, 'verificar_reaparicion'):
+                enemigo.verificar_reaparicion(self.mapa)
+    
+    def mover_enemigos(self):
+        """Mueve todos los enemigos"""
+        if self.modo_actual == "escapa":
+            for enemigo in self.enemigos:
+                if not enemigo.eliminado:
+                    enemigo.mover_hacia(self.jugador, self.mapa)
+        elif self.modo_actual == "cazador":
+            for enemigo in self.enemigos:
+                if not enemigo.eliminado:
+                    enemigo.huir_de(self.jugador, self.mapa)
     
     def actualizar_modo_escapa(self):
         """Actualiza la lógica del modo escapa"""
-        # Verificar si llegó a la salida
-        if self.jugador.obtener_posicion() == self.mapa.pos_salida:
+        # Verificar si llegó a alguna salida
+        pos_jugador = self.jugador.obtener_posicion()
+        if pos_jugador in self.salidas:
             self.finalizar_juego_victoria()
         
         # Verificar colisiones con enemigos
         for enemigo in self.enemigos:
-            if not enemigo.eliminado and self.jugador.obtener_posicion() == enemigo.obtener_posicion():
+            if not enemigo.eliminado and pos_jugador == enemigo.obtener_posicion():
                 if self.jugador.perder_vida():
                     self.finalizar_juego_derrota()
                 else:
                     self.mostrar_mensaje(f"¡Atrapado! Vidas: {self.jugador.vida}", 2.0)
+                    # Reposicionar enemigo
+                    posiciones = self.mapa.obtener_posiciones_validas_enemigo()
+                    if posiciones:
+                        nueva_pos = random.choice(posiciones)
+                        enemigo.fila, enemigo.columna = nueva_pos
     
     def actualizar_modo_cazador(self):
         """Actualiza la lógica del modo cazador"""
-        # Mover enemigos (huyen del jugador)
-        for enemigo in self.enemigos:
-            if not enemigo.eliminado:
-                enemigo.huir_de(self.jugador, self.mapa)
-        
         # Verificar si atrapó un enemigo
+        pos_jugador = self.jugador.obtener_posicion()
         for enemigo in self.enemigos:
-            if not enemigo.eliminado and self.jugador.obtener_posicion() == enemigo.obtener_posicion():
+            if not enemigo.eliminado and pos_jugador == enemigo.obtener_posicion():
                 self.puntaje += 100
-                enemigo.eliminar()
+                enemigo.eliminado = True
                 self.mostrar_mensaje("¡Enemigo atrapado! +100 puntos", 1.0)
+                # Reposicionar enemigo
+                posiciones = self.mapa.obtener_posiciones_validas_enemigo()
+                if posiciones:
+                    nueva_pos = random.choice(posiciones)
+                    enemigo.fila, enemigo.columna = nueva_pos
+                    enemigo.eliminado = False
     
     def dibujar_juego(self):
         """Dibuja el estado del juego"""
         # Calcular offset para centrar el mapa
-        offset_x = (ANCHO_VENTANA - self.mapa.columnas * TAMANO_CELDA) // 2 - 100
+        offset_x = 50
         offset_y = (ALTO_VENTANA - self.mapa.filas * TAMANO_CELDA) // 2
         
         # Dibujar mapa
@@ -397,25 +468,27 @@ class JuegoPygame:
                     color = COLOR_CAMINO
                 elif casilla.codigo == 1:  # Muro
                     color = COLOR_MURO
-                elif casilla.codigo == 2:  # Tunel
+                elif casilla.codigo == 2:  # Túnel (CYAN - solo jugador)
                     color = COLOR_TUNEL
-                elif casilla.codigo == 3:  # Liana
+                elif casilla.codigo == 3:  # Liana (VERDE OSCURO - solo enemigos)
                     color = COLOR_LIANA
                 
                 # Dibujar casilla
                 pygame.draw.rect(self.ventana, color, (x, y, TAMANO_CELDA, TAMANO_CELDA))
                 pygame.draw.rect(self.ventana, GRIS, (x, y, TAMANO_CELDA, TAMANO_CELDA), 1)
                 
-                # Marcar salida
-                if (fila, col) == self.mapa.pos_salida:
-                    pygame.draw.rect(self.ventana, COLOR_SALIDA, (x + 5, y + 5, TAMANO_CELDA - 10, TAMANO_CELDA - 10))
+                # ✅ CORRECCIÓN: Marcar salidas con verde brillante
+                if (fila, col) in self.salidas:
+                    pygame.draw.rect(self.ventana, COLOR_SALIDA, 
+                                   (x + 3, y + 3, TAMANO_CELDA - 6, TAMANO_CELDA - 6), 3)
         
         # Dibujar trampas
         for trampa in self.jugador.trampas_activas:
             fila, col = trampa['posicion']
             x = offset_x + col * TAMANO_CELDA
             y = offset_y + fila * TAMANO_CELDA
-            pygame.draw.circle(self.ventana, COLOR_TRAMPA, (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+            pygame.draw.circle(self.ventana, COLOR_TRAMPA, 
+                             (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 4)
         
         # Dibujar enemigos
         for enemigo in self.enemigos:
@@ -423,58 +496,113 @@ class JuegoPygame:
                 fila, col = enemigo.obtener_posicion()
                 x = offset_x + col * TAMANO_CELDA
                 y = offset_y + fila * TAMANO_CELDA
-                pygame.draw.circle(self.ventana, COLOR_ENEMIGO, (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+                pygame.draw.circle(self.ventana, COLOR_ENEMIGO, 
+                                 (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
         
         # Dibujar jugador
         fila, col = self.jugador.obtener_posicion()
         x = offset_x + col * TAMANO_CELDA
         y = offset_y + fila * TAMANO_CELDA
-        pygame.draw.circle(self.ventana, COLOR_JUGADOR, (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+        pygame.draw.circle(self.ventana, COLOR_JUGADOR, 
+                         (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
         
-        # Dibujar HUD (panel derecho)
-        self.dibujar_hud(offset_x + self.mapa.columnas * TAMANO_CELDA + 20, offset_y)
+        # Dibujar HUD
+        hud_x = offset_x + self.mapa.columnas * TAMANO_CELDA + 40
+        self.dibujar_hud(hud_x, offset_y)
         
-        # Mostrar mensaje temporal si existe
+        # Mostrar mensaje temporal
         if self.mensaje and time.time() - self.tiempo_mensaje < 2.0:
-            texto_msg = self.fuente.render(self.mensaje, True, AMARILLO)
+            texto_msg = self.fuente_grande.render(self.mensaje, True, AMARILLO)
             rect_msg = texto_msg.get_rect(center=(ANCHO_VENTANA // 2, 50))
+            # Fondo semi-transparente
+            fondo = pygame.Surface((texto_msg.get_width() + 20, texto_msg.get_height() + 10))
+            fondo.fill(NEGRO)
+            fondo.set_alpha(200)
+            self.ventana.blit(fondo, (rect_msg.x - 10, rect_msg.y - 5))
             self.ventana.blit(texto_msg, rect_msg)
     
     def dibujar_hud(self, x, y):
         """Dibuja el HUD con información del juego"""
-        textos = [
-            f"Jugador: {self.nombre_jugador}",
-            f"Modo: {self.modo_actual.upper()}",
-            f"Dificultad: {self.dificultad.upper()}",
+        y_actual = y
+        
+        # Información del jugador
+        textos_info = [
+            f"JUGADOR: {self.nombre_jugador}",
+            f"MODO: {self.modo_actual.upper()}",
+            f"DIFICULTAD: {self.dificultad.upper()}",
             "",
             f"Tiempo: {int(time.time() - self.tiempo_inicio)}s",
-            f"Vidas: {self.jugador.vida}",
-            f"Energia: {self.jugador.energia}/100",
+            f"Vidas: {'❤️ ' * self.jugador.vida}",
             f"Puntaje: {self.puntaje}",
-            "",
-            "CONTROLES:",
-            "WASD / Flechas: Mover",
-            "ESPACIO: Trampa",
-            "SHIFT: Correr",
-            "",
-            "LEYENDA:",
-            "• Blanco: Camino",
-            "• Gris: Muro",
-            "• Cyan: Tunel",
-            "• Verde: Liana/Salida",
-            "• Azul: Jugador",
-            "• Rojo: Enemigo",
-            "• Amarillo: Trampa"
         ]
         
-        y_actual = y
-        for texto in textos:
+        for texto in textos_info:
             if texto == "":
                 y_actual += 10
             else:
                 superficie = self.fuente.render(texto, True, BLANCO)
                 self.ventana.blit(superficie, (x, y_actual))
                 y_actual += 25
+        
+        # ✅ CORRECCIÓN: BARRA DE ENERGÍA VISUAL
+        y_actual += 10
+        energia_texto = self.fuente.render("ENERGÍA:", True, BLANCO)
+        self.ventana.blit(energia_texto, (x, y_actual))
+        y_actual += 25
+        
+        # Barra de energía
+        barra_ancho = 200
+        barra_alto = 25
+        energia_porcentaje = self.jugador.energia / 100
+        
+        # Borde de la barra
+        pygame.draw.rect(self.ventana, BLANCO, (x, y_actual, barra_ancho, barra_alto), 2)
+        
+        # Relleno de la barra (color según nivel)
+        if energia_porcentaje > 0.6:
+            color_energia = VERDE
+        elif energia_porcentaje > 0.3:
+            color_energia = AMARILLO
+        else:
+            color_energia = ROJO
+        
+        pygame.draw.rect(self.ventana, color_energia, 
+                        (x + 2, y_actual + 2, 
+                         int((barra_ancho - 4) * energia_porcentaje), 
+                         barra_alto - 4))
+        
+        # Texto de porcentaje
+        texto_porcentaje = self.fuente.render(f"{self.jugador.energia}%", True, BLANCO)
+        self.ventana.blit(texto_porcentaje, (x + barra_ancho + 10, y_actual))
+        
+        y_actual += 40
+        
+        # Controles
+        y_actual += 20
+        controles = [
+            "CONTROLES:",
+            "WASD / Flechas: Mover",
+            "ESPACIO: Trampa",
+            "SHIFT: Correr",
+            "",
+            "LEYENDA:",
+            "⚪ Blanco: Camino",
+            "⬛ Gris: Muro",
+            "🔵 Cyan: Túnel (solo jugador)",
+            "🟢 Verde oscuro: Liana (solo enemigos)",
+            "✨ Verde brillante: Salida",
+            "🔵 Azul: Jugador",
+            "🔴 Rojo: Enemigo",
+            "🟡 Amarillo: Trampa"
+        ]
+        
+        for texto in controles:
+            if texto == "":
+                y_actual += 10
+            else:
+                superficie = self.fuente.render(texto, True, GRIS)
+                self.ventana.blit(superficie, (x, y_actual))
+                y_actual += 22
     
     def mostrar_mensaje(self, mensaje, duracion):
         """Muestra un mensaje temporal"""
@@ -516,7 +644,8 @@ class JuegoPygame:
     
     def dibujar_game_over(self):
         """Dibuja la pantalla de game over"""
-        titulo = self.fuente_titulo.render(self.mensaje, True, VERDE if "VICTORIA" in self.mensaje else ROJO)
+        titulo = self.fuente_titulo.render(self.mensaje, True, 
+                                          VERDE if "VICTORIA" in self.mensaje else ROJO)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
         self.ventana.blit(titulo, rect_titulo)
         
@@ -536,16 +665,19 @@ class JuegoPygame:
                 self.estado = "menu_principal"
     
     def mostrar_puntajes(self):
-        """Muestra los puntajes (simplificado para Pygame)"""
-        # Por ahora solo imprime en consola
-        # Podrías hacer una pantalla dedicada si quieres
-        print("\n=== TOP 5 MODO ESCAPA ===")
-        for p in self.sistema_puntuacion.obtener_top("escapa"):
-            print(f"{p['nombre']}: {p['puntaje']}")
+        """Muestra los puntajes en consola"""
+        print("\n" + "="*50)
+        print("TOP 5 - MODO ESCAPA")
+        print("="*50)
+        for i, p in enumerate(self.sistema_puntuacion.obtener_top("escapa"), 1):
+            print(f"{i}. {p['nombre']}: {p['puntaje']} pts")
         
-        print("\n=== TOP 5 MODO CAZADOR ===")
-        for p in self.sistema_puntuacion.obtener_top("cazador"):
-            print(f"{p['nombre']}: {p['puntaje']}")
+        print("\n" + "="*50)
+        print("TOP 5 - MODO CAZADOR")
+        print("="*50)
+        for i, p in enumerate(self.sistema_puntuacion.obtener_top("cazador"), 1):
+            print(f"{i}. {p['nombre']}: {p['puntaje']} pts")
+        print("="*50 + "\n")
 
 
 if __name__ == "__main__":
