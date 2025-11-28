@@ -35,20 +35,18 @@ class ModoEscapa:
         for i in range(num_enemigos):
             if posiciones_validas:
                 pos = random.choice(posiciones_validas)
-                posiciones_validas.remove(pos)  # Evitar que dos enemigos empiecen en el mismo lugar
+                posiciones_validas.remove(pos)
                 enemigos.append(Enemigo(pos[0], pos[1], velocidad=velocidad_enemigos))
             else:
-                # Si no hay más posiciones, usar una aleatoria
                 enemigos.append(Enemigo(
                     random.randint(1, mapa.filas - 2),
                     random.randint(1, mapa.columnas - 2),
                     velocidad=velocidad_enemigos
                 ))
         
-        # Variables de juego
         tiempo_inicio = time.time()
         enemigos_eliminados_trampa = 0
-        puntaje_base = 1000  # Puntaje base
+        puntaje_base = 1000
         
         print("\n" + "="*50)
         print(f"{'MODO ESCAPA':^50}")
@@ -68,29 +66,22 @@ class ModoEscapa:
         
         input("Presiona ENTER para comenzar...")
         
-        # Loop principal del juego
         while True:
-            # Limpiar pantalla (simulado con saltos de línea)
             print("\n" * 2)
             
-            # Mostrar mapa
             mapa.mostrar_con_multiples_enemigos(jugador, enemigos)
             
-            # Mostrar estadísticas
             tiempo_transcurrido = int(time.time() - tiempo_inicio)
             print(f"\n{'─'*50}")
             print(f"⏱️  Tiempo: {tiempo_transcurrido}s | ❤️  Vidas: {jugador.vida} | ⚡ Energía: {jugador.energia}/100")
             print(f"💣 Trampas: {len(jugador.trampas_activas)}/3 | 🎯 Enemigos eliminados: {enemigos_eliminados_trampa}")
             print(f"{'─'*50}")
             
-            # Verificar reaparición de enemigos eliminados
             for enemigo in enemigos:
                 enemigo.verificar_reaparicion(mapa)
             
-            # Input del jugador
             accion = input("\n➤ Acción: ").lower().strip()
             
-            # Procesar acción
             if accion == "trampa":
                 jugador.colocar_trampa()
             elif accion == "correr":
@@ -119,7 +110,6 @@ class ModoEscapa:
             if jugador.obtener_posicion() == mapa.pos_salida:
                 tiempo_final = int(time.time() - tiempo_inicio)
                 
-                # Calcular puntaje según tiempo
                 if tiempo_final < 30:
                     bonus_tiempo = 500
                 elif tiempo_final < 60:
@@ -145,7 +135,7 @@ class ModoEscapa:
             
             for enemigo in enemigos:
                 if not enemigo.eliminado and jugador.obtener_posicion() == enemigo.obtener_posicion():
-                    if jugador.perder_vida():  # Retorna True si murió
+                    if jugador.perder_vida():
                         tiempo_final = int(time.time() - tiempo_inicio)
                         puntaje_final = int((enemigos_eliminados_trampa * 50) * multiplicador_puntos)
                         
@@ -162,7 +152,6 @@ class ModoEscapa:
                         return
                     else:
                         print(f"💔 ¡Atrapado! Pierdes 1 vida. Vidas restantes: {jugador.vida}")
-                        # Reposicionar enemigo
                         posiciones_disponibles = mapa.obtener_posiciones_validas_enemigo()
                         if posiciones_disponibles:
                             nueva_pos = random.choice(posiciones_disponibles)

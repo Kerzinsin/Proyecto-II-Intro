@@ -33,14 +33,14 @@ class Tunel(Casilla):
         return True
 
     def puede_pasar_enemigo(self):
-        return False  # cazador NO puede entrar
+        return False
 
 class Liana(Casilla):
     def __init__(self):
         super().__init__(3, "L")
 
     def puede_pasar_jugador(self):
-        return False  # jugador NO puede nunca cruzar
+        return False
 
     def puede_pasar_enemigo(self):
-        return True  # solo enemigos pueden cruzar
+        return True

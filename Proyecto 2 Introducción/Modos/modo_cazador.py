@@ -90,7 +90,6 @@ class ModoCazador:
                 print(f"🏆 Puntaje final: {int(puntaje * multiplicador_puntos)}")
                 print("="*50)
                 
-                # Detener todos los enemigos
                 for enemigo in enemigos:
                     enemigo.activo = False
                 
@@ -146,11 +145,9 @@ class ModoCazador:
             enemigos_a_eliminar = []
             for i, enemigo in enumerate(enemigos):
                 if not enemigo.eliminado and jugador.obtener_posicion() == enemigo.obtener_posicion():
-                    # Verificar si está cerca de una salida (distancia <= 2)
                     dist_salida = abs(enemigo.fila - mapa.pos_salida[0]) + abs(enemigo.columna - mapa.pos_salida[1])
                     
                     if dist_salida <= 2:
-                        # Bonus por atrapar cerca de la salida
                         puntaje += 200
                         print(f"💎 ¡Enemigo atrapado cerca de la salida! +200 puntos (BONUS)")
                     else:
@@ -160,7 +157,6 @@ class ModoCazador:
                     enemigos_atrapados += 1
                     enemigos_a_eliminar.append(i)
             
-            # Eliminar enemigos atrapados
             for i in reversed(enemigos_a_eliminar):
                 enemigos.pop(i)
             
@@ -172,7 +168,6 @@ class ModoCazador:
                     print(f"❌ ¡Un enemigo escapó por la salida! -50 puntos")
                     enemigos_que_escaparon.append(i)
             
-            # Eliminar enemigos que escaparon
             for i in reversed(enemigos_que_escaparon):
                 enemigos.pop(i)
             
@@ -185,7 +180,6 @@ class ModoCazador:
                 print(f"🎯 Enemigos atrapados: {enemigos_atrapados}")
                 print(f"🏃 Enemigos escapados: {enemigos_escapados}")
                 
-                # Bonus por victoria anticipada
                 bonus_tiempo = (tiempo_restante * 5)
                 puntaje += bonus_tiempo
                 print(f"⏰ Bonus por tiempo sobrante: +{int(bonus_tiempo)}")
@@ -199,6 +193,5 @@ class ModoCazador:
                 )
                 break
         
-        # Limpiar hilos de enemigos al terminar
         for enemigo in enemigos:
             enemigo.activo = False

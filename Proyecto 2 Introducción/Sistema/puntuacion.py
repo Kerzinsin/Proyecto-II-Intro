@@ -39,7 +39,6 @@ class Puntuacion:
         """Registra un nuevo jugador en el historial"""
         historial = self._cargar_json(self.ruta_historial)
         
-        # Verificar si el jugador ya existe
         for jugador in historial:
             if jugador["nombre"] == nombre:
                 return
@@ -66,7 +65,6 @@ class Puntuacion:
             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M")
         })
         
-        # Ordenar por puntaje (mayor a menor) y mantener solo top 5
         lista = sorted(lista, key=lambda x: x["puntaje"], reverse=True)[:5]
         self._guardar_json(ruta, lista)
     
@@ -82,7 +80,6 @@ class Puntuacion:
 if __name__ == "__main__":
     sistema = Puntuacion()
     
-    # Pruebas
     sistema.registrar_jugador("Juan")
     sistema.guardar_puntaje("Juan", 350, "escapa")
     sistema.guardar_puntaje("Pedro", 400, "escapa")
