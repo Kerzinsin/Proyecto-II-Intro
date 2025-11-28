@@ -2,13 +2,14 @@
 Juego Escapa del Laberinto
 Instituto Tecnológico de Costa Rica
 Proyecto 2 - Introducción a la Programación
-VERSIÓN CORREGIDA
+VERSIÓN MEJORADA - Con sonidos y gráficos mejorados
 """
 
 import pygame
 import sys
 import time
 import random
+import math
 from pathlib import Path
 
 # Importar las clases del proyecto
@@ -16,6 +17,7 @@ from Modelos.mapa import Mapa
 from Modelos.jugador import Jugador
 from Modelos.enemigo import Enemigo
 from Sistema.puntuacion import Puntuacion
+from Sistema.sonidos import GestorSonidos
 
 # Inicializar Pygame
 pygame.init()
@@ -23,35 +25,45 @@ pygame.init()
 # Constantes de la ventana
 ANCHO_VENTANA = 1400
 ALTO_VENTANA = 800
-FPS = 30
+FPS = 60  # Aumentado para animaciones más suaves
 
 # Tamaño de celda
 TAMANO_CELDA = 35
 
-# Colores
+# Colores mejorados con paleta moderna
 BLANCO = (255, 255, 255)
-NEGRO = (0, 0, 0)
-GRIS = (128, 128, 128)
-GRIS_OSCURO = (64, 64, 64)
-VERDE = (0, 255, 0)
-ROJO = (255, 0, 0)
-AZUL = (0, 100, 255)
-AMARILLO = (255, 255, 0)
-NARANJA = (255, 165, 0)
-MORADO = (128, 0, 128)
-CYAN = (0, 255, 255)  # TÚNELES (solo jugador)
-VERDE_OSCURO = (0, 100, 0)  # LIANAS (solo enemigos)
-VERDE_BRILLANTE = (0, 255, 100)  # SALIDAS
+NEGRO = (15, 15, 20)  # Negro más suave
+GRIS = (180, 180, 190)
+GRIS_OSCURO = (40, 40, 50)
+GRIS_CLARO = (220, 220, 230)
 
-# Colores para terrenos
-COLOR_CAMINO = BLANCO
-COLOR_MURO = GRIS_OSCURO
+# Colores vibrantes mejorados
+VERDE = (50, 255, 100)
+VERDE_OSCURO = (0, 150, 50)
+VERDE_BRILLANTE = (100, 255, 150)
+ROJO = (255, 80, 80)
+ROJO_OSCURO = (180, 0, 0)
+AZUL = (80, 150, 255)
+AZUL_OSCURO = (0, 100, 200)
+AMARILLO = (255, 220, 50)
+NARANJA = (255, 150, 50)
+MORADO = (150, 100, 255)
+CYAN = (50, 220, 255)  # TÚNELES (solo jugador)
+CYAN_OSCURO = (0, 180, 220)
+VERDE_LIANA = (50, 150, 80)  # LIANAS (solo enemigos)
+
+# Colores para terrenos con gradientes
+COLOR_CAMINO = (240, 240, 250)
+COLOR_MURO = (50, 50, 60)
 COLOR_TUNEL = CYAN
-COLOR_LIANA = VERDE_OSCURO
+COLOR_LIANA = VERDE_LIANA
 COLOR_JUGADOR = AZUL
 COLOR_ENEMIGO = ROJO
 COLOR_TRAMPA = AMARILLO
 COLOR_SALIDA = VERDE_BRILLANTE
+
+# Color de fondo
+COLOR_FONDO = (25, 25, 35)
 
 class JuegoPygame:
     def __init__(self):
@@ -59,10 +71,21 @@ class JuegoPygame:
         self.ventana = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
         pygame.display.set_caption("Escapa del Laberinto - TEC")
         self.reloj = pygame.time.Clock()
-        self.fuente = pygame.font.Font(None, 22)
-        self.fuente_grande = pygame.font.Font(None, 36)
-        self.fuente_titulo = pygame.font.Font(None, 48)
+        
+        # Fuentes mejoradas
+        try:
+            # Intentar cargar fuentes del sistema
+            self.fuente = pygame.font.Font("arial.ttf", 20)
+            self.fuente_grande = pygame.font.Font("arial.ttf", 32)
+            self.fuente_titulo = pygame.font.Font("arial.ttf", 56)
+        except:
+            # Fallback a fuentes por defecto
+            self.fuente = pygame.font.Font(None, 22)
+            self.fuente_grande = pygame.font.Font(None, 36)
+            self.fuente_titulo = pygame.font.Font(None, 48)
+        
         self.sistema_puntuacion = Puntuacion()
+        self.gestor_sonidos = GestorSonidos()
         self.estado = "menu_principal"
         self.nombre_jugador = ""
         self.dificultad = "normal"
@@ -85,6 +108,13 @@ class JuegoPygame:
         # ✅ CORRECCIÓN: Control del tiempo de juego para modo cazador
         self.tiempo_limite_cazador = 120  # 2 minutos
         self.ultimo_spawn_cazador = None
+        
+        # Variables para animaciones
+        self.animacion_tiempo = 0
+        self.ultima_posicion_jugador = None
+        
+        # Reproducir música de fondo
+        self.gestor_sonidos.reproducir_musica()
         
     def ejecutar(self):
         """Loop principal del juego"""
@@ -137,28 +167,57 @@ class JuegoPygame:
         sys.exit()
     
     def dibujar_menu_principal(self):
-        """Dibuja el menú principal"""
-        titulo = self.fuente_titulo.render("ESCAPA DEL LABERINTO", True, VERDE)
+        """Dibuja el menú principal con mejoras visuales"""
+        # Fondo con gradiente
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Efecto de animación sutil
+        self.animacion_tiempo += 0.05
+        
+        # Título con sombra y efecto
+        titulo_texto = "ESCAPA DEL LABERINTO"
+        # Sombra
+        titulo_sombra = self.fuente_titulo.render(titulo_texto, True, (0, 0, 0))
+        rect_sombra = titulo_sombra.get_rect(center=(ANCHO_VENTANA // 2 + 3, 153))
+        self.ventana.blit(titulo_sombra, rect_sombra)
+        # Título principal con efecto de brillo
+        brillo = int(50 * math.sin(self.animacion_tiempo)) + 205
+        color_titulo = (min(255, brillo), 255, min(255, brillo + 50))
+        titulo = self.fuente_titulo.render(titulo_texto, True, color_titulo)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
         
-        subtitulo = self.fuente.render("Instituto Tecnológico de Costa Rica", True, GRIS)
-        rect_sub = subtitulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
+        # Subtítulo
+        subtitulo = self.fuente_grande.render("Instituto Tecnológico de Costa Rica", True, GRIS_CLARO)
+        rect_sub = subtitulo.get_rect(center=(ANCHO_VENTANA // 2, 220))
         self.ventana.blit(subtitulo, rect_sub)
         
+        # Opciones del menú con mejor diseño
         opciones = [
-            "1. JUGAR",
-            "2. VER PUNTAJES",
-            "3. SALIR"
+            ("1. JUGAR", VERDE),
+            ("2. VER PUNTAJES", AMARILLO),
+            ("3. SALIR", ROJO)
         ]
         
-        y = 300
-        for opcion in opciones:
+        y = 320
+        for opcion, color in opciones:
+            # Fondo semi-transparente para cada opción
+            fondo_opcion = pygame.Surface((400, 50))
+            fondo_opcion.set_alpha(100)
+            fondo_opcion.fill(color)
+            rect_fondo = fondo_opcion.get_rect(center=(ANCHO_VENTANA // 2, y))
+            self.ventana.blit(fondo_opcion, rect_fondo)
+            
+            # Texto de la opción
             texto = self.fuente_grande.render(opcion, True, BLANCO)
             rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
             self.ventana.blit(texto, rect)
-            y += 60
+            y += 70
+        
+        # Instrucción con efecto parpadeante
+        alpha = int(128 + 127 * math.sin(self.animacion_tiempo * 2))
         inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS)
+        inst.set_alpha(alpha)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 550))
         self.ventana.blit(inst, rect_inst)
     
@@ -166,17 +225,23 @@ class JuegoPygame:
         """Maneja eventos del menú principal"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.estado = "registro"
             elif evento.key == pygame.K_2:
                 # ✅ CORRECCIÓN: Cambiar a pantalla de puntajes en lugar de consola
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.estado = "puntajes"
             elif evento.key == pygame.K_3:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 pygame.quit()
                 sys.exit()
     
     # ✅ NUEVO: Pantalla de puntajes en Pygame
     def dibujar_puntajes(self):
-        """Dibuja la pantalla de puntajes"""
+        """Dibuja la pantalla de puntajes con mejoras visuales"""
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Título
         titulo = self.fuente_titulo.render("TABLA DE PUNTAJES", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 80))
         self.ventana.blit(titulo, rect_titulo)
@@ -186,32 +251,48 @@ class JuegoPygame:
         x_der = 3 * ANCHO_VENTANA // 4
         y_inicio = 150
         
-        # Modo Escapa (izquierda)
-        titulo_escapa = self.fuente_grande.render("TOP 5 - MODO ESCAPA", True, AMARILLO)
+        # Modo Escapa (izquierda) con fondo
+        fondo_escapa = pygame.Surface((350, 400))
+        fondo_escapa.fill((40, 40, 50))
+        fondo_escapa.set_alpha(200)
+        rect_fondo_escapa = fondo_escapa.get_rect(center=(x_izq, y_inicio + 150))
+        self.ventana.blit(fondo_escapa, rect_fondo_escapa)
+        pygame.draw.rect(self.ventana, AZUL, rect_fondo_escapa, 3)
+        
+        titulo_escapa = self.fuente_grande.render("TOP 5 - MODO ESCAPA", True, AZUL)
         rect_escapa = titulo_escapa.get_rect(center=(x_izq, y_inicio))
         self.ventana.blit(titulo_escapa, rect_escapa)
         
         y = y_inicio + 50
         top_escapa = self.sistema_puntuacion.obtener_top("escapa")
         for i, p in enumerate(top_escapa, 1):
-            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, BLANCO)
+            color_puesto = AMARILLO if i == 1 else BLANCO
+            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, color_puesto)
             self.ventana.blit(texto, (x_izq - 150, y))
             y += 30
         
-        # Modo Cazador (derecha)
-        titulo_cazador = self.fuente_grande.render("TOP 5 - MODO CAZADOR", True, AMARILLO)
+        # Modo Cazador (derecha) con fondo
+        fondo_cazador = pygame.Surface((350, 400))
+        fondo_cazador.fill((40, 40, 50))
+        fondo_cazador.set_alpha(200)
+        rect_fondo_cazador = fondo_cazador.get_rect(center=(x_der, y_inicio + 150))
+        self.ventana.blit(fondo_cazador, rect_fondo_cazador)
+        pygame.draw.rect(self.ventana, NARANJA, rect_fondo_cazador, 3)
+        
+        titulo_cazador = self.fuente_grande.render("TOP 5 - MODO CAZADOR", True, NARANJA)
         rect_cazador = titulo_cazador.get_rect(center=(x_der, y_inicio))
         self.ventana.blit(titulo_cazador, rect_cazador)
         
         y = y_inicio + 50
         top_cazador = self.sistema_puntuacion.obtener_top("cazador")
         for i, p in enumerate(top_cazador, 1):
-            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, BLANCO)
+            color_puesto = AMARILLO if i == 1 else BLANCO
+            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, color_puesto)
             self.ventana.blit(texto, (x_der - 150, y))
             y += 30
         
         # Instrucción
-        inst = self.fuente.render("Presiona ESC para volver al menú", True, GRIS)
+        inst = self.fuente.render("Presiona ESC para volver al menú", True, GRIS_CLARO)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, ALTO_VENTANA - 50))
         self.ventana.blit(inst, rect_inst)
     
@@ -219,20 +300,44 @@ class JuegoPygame:
         """Maneja eventos de la pantalla de puntajes"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_ESCAPE:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.estado = "menu_principal"
     
     def dibujar_registro(self):
-        """Dibuja la pantalla de registro"""
-        titulo = self.fuente_grande.render("REGISTRO DE JUGADOR", True, VERDE)
+        """Dibuja la pantalla de registro con mejoras visuales"""
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Título con sombra
+        titulo_texto = "REGISTRO DE JUGADOR"
+        titulo_sombra = self.fuente_grande.render(titulo_texto, True, (0, 0, 0))
+        rect_sombra = titulo_sombra.get_rect(center=(ANCHO_VENTANA // 2 + 2, 202))
+        self.ventana.blit(titulo_sombra, rect_sombra)
+        
+        titulo = self.fuente_grande.render(titulo_texto, True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
         self.ventana.blit(titulo, rect_titulo)
-        instruccion = self.fuente.render("Ingresa tu nombre (min. 3 caracteres):", True, BLANCO)
+        
+        # Instrucción
+        instruccion = self.fuente_grande.render("Ingresa tu nombre (min. 3 caracteres):", True, BLANCO)
         rect_inst = instruccion.get_rect(center=(ANCHO_VENTANA // 2, 300))
         self.ventana.blit(instruccion, rect_inst)
-        nombre_texto = self.fuente_grande.render(self.nombre_jugador + "_", True, AMARILLO)
+        
+        # Campo de entrada con fondo
+        nombre_display = self.nombre_jugador + ("_" if int(time.time() * 2) % 2 else " ")
+        nombre_texto = self.fuente_grande.render(nombre_display, True, AMARILLO)
         rect_nombre = nombre_texto.get_rect(center=(ANCHO_VENTANA // 2, 350))
+        
+        # Fondo del campo
+        fondo_campo = pygame.Surface((400, 50))
+        fondo_campo.fill((40, 40, 50))
+        rect_fondo = fondo_campo.get_rect(center=(ANCHO_VENTANA // 2, 350))
+        self.ventana.blit(fondo_campo, rect_fondo)
+        pygame.draw.rect(self.ventana, AMARILLO, rect_fondo, 2)
+        
         self.ventana.blit(nombre_texto, rect_nombre)
-        info = self.fuente.render("Presiona ENTER para continuar", True, GRIS)
+        
+        # Info
+        info = self.fuente.render("Presiona ENTER para continuar", True, GRIS_CLARO)
         rect_info = info.get_rect(center=(ANCHO_VENTANA // 2, 450))
         self.ventana.blit(info, rect_info)
     
@@ -241,38 +346,50 @@ class JuegoPygame:
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_RETURN:
                 if len(self.nombre_jugador) >= 3:
+                    self.gestor_sonidos.reproducir_sonido('menu_click')
                     self.sistema_puntuacion.registrar_jugador(self.nombre_jugador)
                     self.estado = "seleccion_dificultad"
             elif evento.key == pygame.K_BACKSPACE:
-                self.nombre_jugador = self.nombre_jugador[:-1]
+                if len(self.nombre_jugador) > 0:
+                    self.nombre_jugador = self.nombre_jugador[:-1]
             elif evento.unicode.isalnum() or evento.unicode == " ":
                 if len(self.nombre_jugador) < 20:
                     self.nombre_jugador += evento.unicode
     
     def dibujar_seleccion_dificultad(self):
-        """Dibuja la selección de dificultad"""
+        """Dibuja la selección de dificultad con mejoras visuales"""
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Título
         titulo = self.fuente_grande.render("SELECCIONA DIFICULTAD", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
         
         opciones = [
-            ("1. FACIL", "Menos enemigos, más lentos - Multiplicador: x1.0"),
-            ("2. NORMAL", "Balance de enemigos - Multiplicador: x1.5"),
-            ("3. DIFICIL", "Más enemigos, más rápidos - Multiplicador: x2.0")
+            ("1. FACIL", "Menos enemigos, más lentos - Multiplicador: x1.0", VERDE),
+            ("2. NORMAL", "Balance de enemigos - Multiplicador: x1.5", AMARILLO),
+            ("3. DIFICIL", "Más enemigos, más rápidos - Multiplicador: x2.0", ROJO)
         ]
         
         y = 250
-        for opcion, desc in opciones:
+        for opcion, desc, color in opciones:
+            # Fondo semi-transparente
+            fondo_opcion = pygame.Surface((600, 60))
+            fondo_opcion.set_alpha(120)
+            fondo_opcion.fill(color)
+            rect_fondo = fondo_opcion.get_rect(center=(ANCHO_VENTANA // 2, y))
+            self.ventana.blit(fondo_opcion, rect_fondo)
+            
             texto = self.fuente_grande.render(opcion, True, BLANCO)
-            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
+            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y - 10))
             self.ventana.blit(texto, rect)
             
-            desc_texto = self.fuente.render(desc, True, GRIS)
-            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
+            desc_texto = self.fuente.render(desc, True, GRIS_CLARO)
+            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 20))
             self.ventana.blit(desc_texto, rect_desc)
             y += 90
         
-        inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS)
+        inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS_CLARO)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 550))
         self.ventana.blit(inst, rect_inst)
     
@@ -280,38 +397,51 @@ class JuegoPygame:
         """Maneja eventos de selección de dificultad"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.dificultad = "facil"
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_2:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.dificultad = "normal"
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_3:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.dificultad = "dificil"
                 self.estado = "seleccion_modo"
     
     def dibujar_seleccion_modo(self):
-        """Dibuja la selección de modo"""
+        """Dibuja la selección de modo con mejoras visuales"""
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Título
         titulo = self.fuente_grande.render("SELECCIONA MODO DE JUEGO", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
         
         opciones = [
-            ("1. MODO ESCAPA", "Huye de los cazadores y llega a la salida"),
-            ("2. MODO CAZADOR", "Atrapa a los enemigos antes de que escapen")
+            ("1. MODO ESCAPA", "Huye de los cazadores y llega a la salida", AZUL),
+            ("2. MODO CAZADOR", "Atrapa a los enemigos antes de que escapen", NARANJA)
         ]
         
         y = 280
-        for opcion, desc in opciones:
+        for opcion, desc, color in opciones:
+            # Fondo semi-transparente
+            fondo_opcion = pygame.Surface((700, 70))
+            fondo_opcion.set_alpha(130)
+            fondo_opcion.fill(color)
+            rect_fondo = fondo_opcion.get_rect(center=(ANCHO_VENTANA // 2, y))
+            self.ventana.blit(fondo_opcion, rect_fondo)
+            
             texto = self.fuente_grande.render(opcion, True, BLANCO)
-            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
+            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y - 10))
             self.ventana.blit(texto, rect)
             
-            desc_texto = self.fuente.render(desc, True, GRIS)
-            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
+            desc_texto = self.fuente.render(desc, True, GRIS_CLARO)
+            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 25))
             self.ventana.blit(desc_texto, rect_desc)
-            y += 100
+            y += 120
         
-        inst = self.fuente.render("Presiona 1 o 2 para seleccionar", True, GRIS)
+        inst = self.fuente.render("Presiona 1 o 2 para seleccionar", True, GRIS_CLARO)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 520))
         self.ventana.blit(inst, rect_inst)
     
@@ -319,9 +449,11 @@ class JuegoPygame:
         """Maneja eventos de selección de modo"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.modo_actual = "escapa"
                 self.iniciar_juego()
             elif evento.key == pygame.K_2:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.modo_actual = "cazador"
                 self.iniciar_juego()
     
@@ -399,15 +531,22 @@ class JuegoPygame:
                 # ✅ CORRECCIÓN: Solo permitir trampas en modo escapa
                 if self.modo_actual == "escapa":
                     if self.jugador.colocar_trampa():
+                        self.gestor_sonidos.reproducir_sonido('trampa_colocada')
                         self.mostrar_mensaje("¡Trampa colocada!", 1.0)
             elif evento.key in [pygame.K_LSHIFT, pygame.K_RSHIFT]:
                 # ✅ CORRECCIÓN: Correr consume energía y permite movimiento rápido
+                if self.jugador.energia >= 100:
+                    self.gestor_sonidos.reproducir_sonido('correr')
                 self.jugador.activar_correr()
             
             if direccion:
                 # ✅ CORRECCIÓN: Movimiento con correr
+                pos_anterior = self.jugador.obtener_posicion()
                 if self.jugador.mover(direccion, self.mapa):
-                    pass  # Movimiento exitoso
+                    pos_nueva = self.jugador.obtener_posicion()
+                    if pos_anterior != pos_nueva:
+                        self.gestor_sonidos.reproducir_sonido('movimiento', 0.3)
+                        self.ultima_posicion_jugador = pos_anterior
     
     def actualizar_juego(self):
         """Actualiza la lógica del juego"""
@@ -449,14 +588,17 @@ class JuegoPygame:
                     if self.modo_actual == "escapa":
                         # ✅ CORRECCIÓN: Perder vida y reaparecer en inicio
                         if self.jugador.perder_vida():
+                            self.gestor_sonidos.reproducir_sonido('derrota')
                             self.finalizar_juego_derrota()
                             return
                         else:
                             # Reaparecer en posición inicial
+                            self.gestor_sonidos.reproducir_sonido('vida_perdida')
                             self.jugador.fila, self.jugador.columna = self.mapa.pos_inicio
                             self.mostrar_mensaje(f"¡Atrapado! Vidas: {self.jugador.vida}", 2.0)
                     else:  # modo cazador
                         # ✅ CORRECCIÓN: Atrapar enemigo
+                        self.gestor_sonidos.reproducir_sonido('enemigo_atrapado')
                         self.enemigos.remove(enemigo)
                         self.puntaje += 100
                         self.mostrar_mensaje("¡Enemigo atrapado! +100 pts", 1.0)
@@ -468,6 +610,7 @@ class JuegoPygame:
             for enemigo in self.enemigos[:]:  # Copiar lista para modificar
                 if not enemigo.eliminado:
                     if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
+                        self.gestor_sonidos.reproducir_sonido('trampa_activada')
                         enemigo.eliminar()
                         self.puntaje += 100  # ✅ +100 por trampa
                         self.mostrar_mensaje("¡Trampa activada! +100 pts", 1.0)
@@ -483,6 +626,7 @@ class JuegoPygame:
             for enemigo in self.enemigos[:]:  # Copiar lista
                 if not enemigo.eliminado:
                     if enemigo.obtener_posicion() in self.salidas:
+                        self.gestor_sonidos.reproducir_sonido('enemigo_escapo')
                         self.enemigos.remove(enemigo)
                         self.puntaje = max(0, self.puntaje - 50)  # ✅ -50 puntos
                         self.mostrar_mensaje("¡Enemigo escapó! -50 pts", 1.0)
@@ -492,7 +636,16 @@ class JuegoPygame:
         # ✅ CORRECCIÓN: Verificar victoria (llegar a la salida)
         if pos_jugador in self.salidas:
             if self.modo_actual == "escapa":
+                self.gestor_sonidos.reproducir_sonido('victoria')
                 self.finalizar_juego_victoria()
+        
+        # Verificar si el jugador está en un túnel para recuperar energía
+        casilla_actual = self.mapa.matriz[pos_jugador[0]][pos_jugador[1]]
+        from Modelos.terreno import Tunel
+        if isinstance(casilla_actual, Tunel) and self.jugador.energia < 100:
+            # Reproducir sonido de energía recuperada ocasionalmente
+            if random.random() < 0.1:  # 10% de probabilidad cada frame
+                self.gestor_sonidos.reproducir_sonido('energia_recuperada', 0.2)
     
     def generar_nuevo_enemigo(self):
         """Genera un nuevo enemigo en una posición válida"""
@@ -503,14 +656,20 @@ class JuegoPygame:
             self.enemigos.append(nuevo_enemigo)
     
     def dibujar_juego(self):
-        """Dibuja el estado del juego"""
+        """Dibuja el estado del juego con mejoras visuales"""
+        # Fondo
+        self.ventana.fill(COLOR_FONDO)
+        
         # Calcular offset para centrar el mapa
         ancho_mapa = self.mapa.columnas * TAMANO_CELDA
         alto_mapa = self.mapa.filas * TAMANO_CELDA
         offset_x = 50
         offset_y = (ALTO_VENTANA - alto_mapa) // 2
         
-        # Dibujar mapa
+        # Actualizar tiempo de animación
+        self.animacion_tiempo += 0.1
+        
+        # Dibujar mapa con efectos mejorados
         for fila in range(self.mapa.filas):
             for col in range(self.mapa.columnas):
                 x = offset_x + col * TAMANO_CELDA
@@ -521,117 +680,227 @@ class JuegoPygame:
                 codigo = casilla.codigo
                 
                 if codigo == 0:  # Camino
-                    color = COLOR_CAMINO
+                    color_base = COLOR_CAMINO
+                    color_borde = GRIS_CLARO
                 elif codigo == 1:  # Muro
-                    color = COLOR_MURO
+                    color_base = COLOR_MURO
+                    color_borde = GRIS_OSCURO
                 elif codigo == 2:  # Túnel
-                    color = COLOR_TUNEL
+                    # Efecto pulsante para túneles
+                    pulsacion = int(20 * math.sin(self.animacion_tiempo * 2))
+                    color_base = (min(255, CYAN[0] + pulsacion), 
+                                 min(255, CYAN[1] + pulsacion), 
+                                 min(255, CYAN[2] + pulsacion))
+                    color_borde = CYAN_OSCURO
                 elif codigo == 3:  # Liana
-                    color = COLOR_LIANA
+                    color_base = COLOR_LIANA
+                    color_borde = VERDE_OSCURO
                 else:
-                    color = NEGRO
+                    color_base = NEGRO
+                    color_borde = GRIS_OSCURO
                 
-                pygame.draw.rect(self.ventana, color, (x, y, TAMANO_CELDA, TAMANO_CELDA))
-                pygame.draw.rect(self.ventana, GRIS, (x, y, TAMANO_CELDA, TAMANO_CELDA), 1)
+                # Dibujar celda con sombra
+                pygame.draw.rect(self.ventana, (0, 0, 0), 
+                               (x + 2, y + 2, TAMANO_CELDA, TAMANO_CELDA))
+                pygame.draw.rect(self.ventana, color_base, 
+                               (x, y, TAMANO_CELDA, TAMANO_CELDA))
+                pygame.draw.rect(self.ventana, color_borde, 
+                               (x, y, TAMANO_CELDA, TAMANO_CELDA), 2)
                 
-                # ✅ CORRECCIÓN: Dibujar todas las salidas
+                # ✅ CORRECCIÓN: Dibujar todas las salidas con efecto brillante
                 if (fila, col) in self.salidas:
-                    pygame.draw.rect(self.ventana, COLOR_SALIDA, 
-                                   (x + 3, y + 3, TAMANO_CELDA - 6, TAMANO_CELDA - 6), 3)
+                    brillo = int(50 * math.sin(self.animacion_tiempo * 3))
+                    color_salida = (min(255, VERDE_BRILLANTE[0] + brillo),
+                                   min(255, VERDE_BRILLANTE[1] + brillo),
+                                   min(255, VERDE_BRILLANTE[2] + brillo))
+                    pygame.draw.rect(self.ventana, color_salida, 
+                                   (x + 2, y + 2, TAMANO_CELDA - 4, TAMANO_CELDA - 4), 3)
+                    # Efecto de brillo adicional
+                    pygame.draw.circle(self.ventana, (255, 255, 255, 100), 
+                                     (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), 
+                                     TAMANO_CELDA // 3)
         
-        # ✅ CORRECCIÓN: Solo dibujar trampas en modo escapa
+        # ✅ CORRECCIÓN: Solo dibujar trampas en modo escapa con efecto pulsante
         if self.modo_actual == "escapa":
             for trampa in self.jugador.trampas_activas:
                 fila, col = trampa['posicion']
                 x = offset_x + col * TAMANO_CELDA
                 y = offset_y + fila * TAMANO_CELDA
+                centro_x = x + TAMANO_CELDA // 2
+                centro_y = y + TAMANO_CELDA // 2
+                
+                # Efecto pulsante
+                pulsacion = int(5 * math.sin(self.animacion_tiempo * 4))
+                radio = TAMANO_CELDA // 4 + pulsacion
+                
+                # Sombra
+                pygame.draw.circle(self.ventana, (0, 0, 0, 100), 
+                                 (centro_x + 2, centro_y + 2), radio)
+                # Círculo principal
                 pygame.draw.circle(self.ventana, COLOR_TRAMPA, 
-                                 (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 4)
+                                 (centro_x, centro_y), radio)
+                # Borde
+                pygame.draw.circle(self.ventana, NARANJA, 
+                                 (centro_x, centro_y), radio, 2)
         
-        # Dibujar enemigos
+        # Dibujar enemigos con sombra y efecto
         for enemigo in self.enemigos:
             if not enemigo.eliminado:
                 fila, col = enemigo.obtener_posicion()
                 x = offset_x + col * TAMANO_CELDA
                 y = offset_y + fila * TAMANO_CELDA
+                centro_x = x + TAMANO_CELDA // 2
+                centro_y = y + TAMANO_CELDA // 2
+                radio = TAMANO_CELDA // 3
+                
+                # Sombra
+                pygame.draw.circle(self.ventana, (0, 0, 0, 150), 
+                                 (centro_x + 2, centro_y + 2), radio)
+                # Círculo principal con gradiente simulado
                 pygame.draw.circle(self.ventana, COLOR_ENEMIGO, 
-                                 (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+                                 (centro_x, centro_y), radio)
+                # Borde
+                pygame.draw.circle(self.ventana, ROJO_OSCURO, 
+                                 (centro_x, centro_y), radio, 2)
+                # Ojos (puntos pequeños)
+                pygame.draw.circle(self.ventana, BLANCO, 
+                                 (centro_x - 4, centro_y - 4), 2)
+                pygame.draw.circle(self.ventana, BLANCO, 
+                                 (centro_x + 4, centro_y - 4), 2)
         
-        # Dibujar jugador
+        # Dibujar jugador con efecto mejorado
         fila, col = self.jugador.obtener_posicion()
         x = offset_x + col * TAMANO_CELDA
         y = offset_y + fila * TAMANO_CELDA
+        centro_x = x + TAMANO_CELDA // 2
+        centro_y = y + TAMANO_CELDA // 2
+        radio = TAMANO_CELDA // 3
+        
+        # Efecto de brillo si está corriendo
+        if self.jugador.corriendo:
+            brillo = int(30 * math.sin(self.animacion_tiempo * 6))
+            radio_brillo = radio + brillo // 3
+            pygame.draw.circle(self.ventana, (255, 255, 255, 100), 
+                             (centro_x, centro_y), radio_brillo)
+        
+        # Sombra
+        pygame.draw.circle(self.ventana, (0, 0, 0, 150), 
+                         (centro_x + 2, centro_y + 2), radio)
+        # Círculo principal
         pygame.draw.circle(self.ventana, COLOR_JUGADOR, 
-                         (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+                         (centro_x, centro_y), radio)
+        # Borde
+        pygame.draw.circle(self.ventana, AZUL_OSCURO, 
+                         (centro_x, centro_y), radio, 2)
+        # Detalle (cara)
+        pygame.draw.circle(self.ventana, BLANCO, 
+                         (centro_x - 3, centro_y - 3), 2)
+        pygame.draw.circle(self.ventana, BLANCO, 
+                         (centro_x + 3, centro_y - 3), 2)
         
         # Dibujar HUD
         hud_x = offset_x + self.mapa.columnas * TAMANO_CELDA + 40
         self.dibujar_hud(hud_x, offset_y)
         
-        # Mostrar mensaje temporal
+        # Mostrar mensaje temporal con mejor diseño
         if self.mensaje and time.time() - self.tiempo_mensaje < 2.0:
             texto_msg = self.fuente_grande.render(self.mensaje, True, AMARILLO)
             rect_msg = texto_msg.get_rect(center=(ANCHO_VENTANA // 2, 50))
-            fondo = pygame.Surface((texto_msg.get_width() + 20, texto_msg.get_height() + 10))
+            
+            # Fondo con borde
+            fondo = pygame.Surface((texto_msg.get_width() + 30, texto_msg.get_height() + 20))
             fondo.fill(NEGRO)
-            fondo.set_alpha(200)
-            self.ventana.blit(fondo, (rect_msg.x - 10, rect_msg.y - 5))
+            fondo.set_alpha(220)
+            self.ventana.blit(fondo, (rect_msg.x - 15, rect_msg.y - 10))
+            
+            # Borde
+            pygame.draw.rect(self.ventana, AMARILLO, 
+                           (rect_msg.x - 15, rect_msg.y - 10, 
+                            texto_msg.get_width() + 30, texto_msg.get_height() + 20), 3)
+            
             self.ventana.blit(texto_msg, rect_msg)
     
     def dibujar_hud(self, x, y):
-        """Dibuja el HUD con información del juego"""
+        """Dibuja el HUD con información del juego mejorado"""
+        # Fondo del HUD
+        fondo_hud = pygame.Surface((280, ALTO_VENTANA - y))
+        fondo_hud.fill((30, 30, 40))
+        fondo_hud.set_alpha(230)
+        self.ventana.blit(fondo_hud, (x - 20, y - 10))
+        pygame.draw.rect(self.ventana, AZUL, (x - 20, y - 10, 280, ALTO_VENTANA - y), 2)
+        
         y_actual = y
         
         # ✅ CORRECCIÓN: Mostrar tiempo según modo
         if self.modo_actual == "escapa":
             tiempo_texto = f"Tiempo: {int(time.time() - self.tiempo_inicio)}s"
+            color_tiempo = BLANCO
         else:  # cazador
             tiempo_restante = self.tiempo_limite_cazador - int(time.time() - self.tiempo_inicio)
             tiempo_texto = f"Tiempo: {max(0, tiempo_restante)}s"
+            # Cambiar color si el tiempo es bajo
+            if tiempo_restante <= 30:
+                color_tiempo = ROJO
+            elif tiempo_restante <= 60:
+                color_tiempo = AMARILLO
+            else:
+                color_tiempo = BLANCO
         
         # Información del jugador
         textos_info = [
-            f"JUGADOR: {self.nombre_jugador}",
-            f"MODO: {self.modo_actual.upper()}",
-            f"DIFICULTAD: {self.dificultad.upper()}",
-            "",
-            tiempo_texto,
-            f"Puntaje: {self.puntaje}",
+            (f"JUGADOR: {self.nombre_jugador}", VERDE),
+            (f"MODO: {self.modo_actual.upper()}", AMARILLO),
+            (f"DIFICULTAD: {self.dificultad.upper()}", NARANJA),
+            ("", None),
+            (tiempo_texto, color_tiempo if self.modo_actual == "cazador" else BLANCO),
+            (f"Puntaje: {self.puntaje}", AMARILLO),
         ]
         
         # ✅ Solo mostrar vidas en modo escapa
         if self.modo_actual == "escapa":
-            textos_info.insert(5, f"Vidas: {'❤️ ' * self.jugador.vida}")
+            vidas_texto = f"Vidas: {'❤️ ' * self.jugador.vida}"
+            textos_info.insert(5, (vidas_texto, ROJO if self.jugador.vida <= 1 else BLANCO))
         
-        for texto in textos_info:
+        for texto, color in textos_info:
             if texto == "":
                 y_actual += 10
             else:
-                superficie = self.fuente.render(texto, True, BLANCO)
+                superficie = self.fuente.render(texto, True, color)
                 self.ventana.blit(superficie, (x, y_actual))
                 y_actual += 25
         
-        # BARRA DE ENERGÍA VISUAL
+        # BARRA DE ENERGÍA VISUAL MEJORADA
         y_actual += 10
         energia_texto = self.fuente.render("ENERGÍA:", True, BLANCO)
         self.ventana.blit(energia_texto, (x, y_actual))
         y_actual += 25
         
-        # Barra de energía
+        # Barra de energía con sombra
         barra_ancho = 200
         barra_alto = 25
         energia_porcentaje = self.jugador.energia / 100
         
+        # Sombra
+        pygame.draw.rect(self.ventana, (0, 0, 0), 
+                       (x + 2, y_actual + 2, barra_ancho, barra_alto))
+        
         # Borde de la barra
         pygame.draw.rect(self.ventana, BLANCO, (x, y_actual, barra_ancho, barra_alto), 2)
         
-        # Relleno de la barra (color según nivel)
+        # Relleno de la barra (color según nivel con gradiente)
         if energia_porcentaje > 0.6:
             color_energia = VERDE
         elif energia_porcentaje > 0.3:
             color_energia = AMARILLO
         else:
             color_energia = ROJO
+        
+        # Relleno con efecto de brillo si está llena
+        if energia_porcentaje >= 1.0:
+            brillo = int(30 * math.sin(self.animacion_tiempo * 4))
+            color_energia = (min(255, VERDE[0] + brillo), 
+                           min(255, VERDE[1] + brillo), 
+                           min(255, VERDE[2] + brillo))
         
         pygame.draw.rect(self.ventana, color_energia, 
                         (x + 2, y_actual + 2, 
@@ -643,40 +912,51 @@ class JuegoPygame:
         self.ventana.blit(texto_porcentaje, (x + barra_ancho + 10, y_actual))
         y_actual += 40
         
-        # Controles
+        # Controles con mejor diseño
         y_actual += 20
+        titulo_controles = self.fuente.render("CONTROLES:", True, CYAN)
+        self.ventana.blit(titulo_controles, (x, y_actual))
+        y_actual += 25
+        
         controles = [
-            "CONTROLES:",
             "Flechas: Mover",
             "SHIFT: Correr (1s)",
         ]
         
         # ✅ Solo mostrar trampa en modo escapa
         if self.modo_actual == "escapa":
-            controles.insert(2, "ESPACIO: Trampa")
-        
-        controles.extend([
-            "",
-            "LEYENDA:",
-            "⚪ Blanco: Camino",
-            "⬛ Gris: Muro",
-            "🔵 Cyan: Túnel (solo jugador)",
-            "🟢 Verde oscuro: Liana (solo enemigos)",
-            "✨ Verde brillante: Salida",
-            "🔵 Azul: Jugador",
-            "🔴 Rojo: Enemigo",
-        ])
-        
-        if self.modo_actual == "escapa":
-            controles.append("🟡 Amarillo: Trampa")
+            controles.insert(1, "ESPACIO: Trampa")
         
         for texto in controles:
-            if texto == "":
-                y_actual += 10
-            else:
-                superficie = self.fuente.render(texto, True, GRIS)
-                self.ventana.blit(superficie, (x, y_actual))
-                y_actual += 22
+            superficie = self.fuente.render(texto, True, GRIS_CLARO)
+            self.ventana.blit(superficie, (x, y_actual))
+            y_actual += 22
+        
+        # Leyenda
+        y_actual += 10
+        titulo_leyenda = self.fuente.render("LEYENDA:", True, CYAN)
+        self.ventana.blit(titulo_leyenda, (x, y_actual))
+        y_actual += 25
+        
+        leyenda_items = [
+            ("Blanco", COLOR_CAMINO, "Camino"),
+            ("Gris", COLOR_MURO, "Muro"),
+            ("Cyan", COLOR_TUNEL, "Túnel (jugador)"),
+            ("Verde oscuro", COLOR_LIANA, "Liana (enemigos)"),
+            ("Verde brillante", COLOR_SALIDA, "Salida"),
+            ("Azul", COLOR_JUGADOR, "Jugador"),
+            ("Rojo", COLOR_ENEMIGO, "Enemigo"),
+        ]
+        
+        if self.modo_actual == "escapa":
+            leyenda_items.append(("Amarillo", COLOR_TRAMPA, "Trampa"))
+        
+        for color_nombre, color_rgb, descripcion in leyenda_items:
+            # Muestra de color
+            pygame.draw.rect(self.ventana, color_rgb, (x, y_actual, 15, 15))
+            texto_leyenda = self.fuente.render(f"{color_nombre}: {descripcion}", True, GRIS_CLARO)
+            self.ventana.blit(texto_leyenda, (x + 20, y_actual))
+            y_actual += 20
     
     def mostrar_mensaje(self, mensaje, duracion):
         """Muestra un mensaje temporal"""
@@ -699,6 +979,7 @@ class JuegoPygame:
         
         self.estado = "game_over"
         self.mensaje = "¡VICTORIA!"
+        # Sonido ya se reproduce en actualizar_juego
     
     def finalizar_juego_derrota(self):
         """Finaliza el juego con derrota"""
@@ -710,9 +991,11 @@ class JuegoPygame:
         
         self.estado = "game_over"
         self.mensaje = "GAME OVER"
+        # Sonido ya se reproduce en actualizar_juego
     
     def finalizar_juego_tiempo_cazador(self):
         """Finaliza el juego por tiempo en modo cazador"""
+        self.gestor_sonidos.reproducir_sonido('derrota')
         multiplicadores = {"facil": 1.0, "normal": 1.5, "dificil": 2.0}
         mult = multiplicadores[self.dificultad]
         
@@ -723,17 +1006,47 @@ class JuegoPygame:
         self.mensaje = "TIEMPO AGOTADO"
     
     def dibujar_game_over(self):
-        """Dibuja la pantalla de game over"""
-        titulo = self.fuente_titulo.render(self.mensaje, True, 
-                                          VERDE if "VICTORIA" in self.mensaje else ROJO)
+        """Dibuja la pantalla de game over con mejoras visuales"""
+        self.ventana.fill(COLOR_FONDO)
+        
+        # Efecto de animación
+        self.animacion_tiempo += 0.1
+        
+        # Título con efecto
+        es_victoria = "VICTORIA" in self.mensaje
+        color_titulo = VERDE if es_victoria else ROJO
+        
+        # Efecto de brillo para victoria
+        if es_victoria:
+            brillo = int(50 * math.sin(self.animacion_tiempo * 3))
+            color_titulo = (min(255, VERDE[0] + brillo), 
+                           min(255, VERDE[1] + brillo), 
+                           min(255, VERDE[2] + brillo))
+        
+        # Sombra
+        titulo_sombra = self.fuente_titulo.render(self.mensaje, True, (0, 0, 0))
+        rect_sombra = titulo_sombra.get_rect(center=(ANCHO_VENTANA // 2 + 3, 203))
+        self.ventana.blit(titulo_sombra, rect_sombra)
+        
+        titulo = self.fuente_titulo.render(self.mensaje, True, color_titulo)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 200))
         self.ventana.blit(titulo, rect_titulo)
         
+        # Puntaje con fondo
         puntaje_texto = self.fuente_grande.render(f"Puntaje Final: {self.puntaje}", True, AMARILLO)
         rect_puntaje = puntaje_texto.get_rect(center=(ANCHO_VENTANA // 2, 300))
+        
+        fondo_puntaje = pygame.Surface((puntaje_texto.get_width() + 40, puntaje_texto.get_height() + 20))
+        fondo_puntaje.fill((40, 40, 50))
+        fondo_puntaje.set_alpha(200)
+        rect_fondo_puntaje = fondo_puntaje.get_rect(center=(ANCHO_VENTANA // 2, 300))
+        self.ventana.blit(fondo_puntaje, rect_fondo_puntaje)
+        pygame.draw.rect(self.ventana, AMARILLO, rect_fondo_puntaje, 2)
+        
         self.ventana.blit(puntaje_texto, rect_puntaje)
         
-        inst = self.fuente.render("Presiona ESPACIO para volver al menú", True, BLANCO)
+        # Instrucción
+        inst = self.fuente.render("Presiona ESPACIO para volver al menú", True, GRIS_CLARO)
         rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 400))
         self.ventana.blit(inst, rect_inst)
     
@@ -741,6 +1054,7 @@ class JuegoPygame:
         """Maneja eventos de game over"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_SPACE:
+                self.gestor_sonidos.reproducir_sonido('menu_click')
                 self.nombre_jugador = ""
                 self.estado = "menu_principal"
 
