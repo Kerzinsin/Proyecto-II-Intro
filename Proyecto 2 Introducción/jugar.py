@@ -2,6 +2,7 @@
 Juego Escapa del Laberinto
 Instituto Tecnológico de Costa Rica
 Proyecto 2 - Introducción a la Programación
+VERSIÓN CORREGIDA
 """
 
 import pygame
@@ -45,12 +46,12 @@ VERDE_BRILLANTE = (0, 255, 100)  # SALIDAS
 # Colores para terrenos
 COLOR_CAMINO = BLANCO
 COLOR_MURO = GRIS_OSCURO
-COLOR_TUNEL = CYAN  # ✅ Cyan para túneles
-COLOR_LIANA = VERDE_OSCURO  # ✅ Verde oscuro para lianas (NO el jugador)
+COLOR_TUNEL = CYAN
+COLOR_LIANA = VERDE_OSCURO
 COLOR_JUGADOR = AZUL
 COLOR_ENEMIGO = ROJO
 COLOR_TRAMPA = AMARILLO
-COLOR_SALIDA = VERDE_BRILLANTE  # ✅ Verde brillante para salidas
+COLOR_SALIDA = VERDE_BRILLANTE
 
 class JuegoPygame:
     def __init__(self):
@@ -75,10 +76,15 @@ class JuegoPygame:
         self.puntaje = 0
         self.mensaje = ""
         self.tiempo_mensaje = 0
+        self.salidas = []  # ✅ Lista de salidas (puede haber múltiples)
         
-        # CORRECCIÓN: Control de velocidad de enemigos
+        # ✅ CORRECCIÓN: Control de velocidad de enemigos mejorado
         self.ultimo_movimiento_enemigos = time.time()
-        self.intervalo_enemigos = 1.0  # 1 segundo entre movimientos
+        self.intervalo_enemigos = 1.0
+        
+        # ✅ CORRECCIÓN: Control del tiempo de juego para modo cazador
+        self.tiempo_limite_cazador = 120  # 2 minutos
+        self.ultimo_spawn_cazador = None
         
     def ejecutar(self):
         """Loop principal del juego"""
@@ -101,6 +107,8 @@ class JuegoPygame:
                     self.manejar_eventos_juego(evento)
                 elif self.estado == "game_over":
                     self.manejar_eventos_game_over(evento)
+                elif self.estado == "puntajes":  # ✅ Nuevo estado
+                    self.manejar_eventos_puntajes(evento)
             
             # Actualizar
             if self.estado == "jugando":
@@ -120,6 +128,8 @@ class JuegoPygame:
                 self.dibujar_juego()
             elif self.estado == "game_over":
                 self.dibujar_game_over()
+            elif self.estado == "puntajes":  # ✅ Nuevo estado
+                self.dibujar_puntajes()
             
             pygame.display.flip()
             self.reloj.tick(FPS)
@@ -158,10 +168,58 @@ class JuegoPygame:
             if evento.key == pygame.K_1:
                 self.estado = "registro"
             elif evento.key == pygame.K_2:
-                self.mostrar_puntajes()
+                # ✅ CORRECCIÓN: Cambiar a pantalla de puntajes en lugar de consola
+                self.estado = "puntajes"
             elif evento.key == pygame.K_3:
                 pygame.quit()
                 sys.exit()
+    
+    # ✅ NUEVO: Pantalla de puntajes en Pygame
+    def dibujar_puntajes(self):
+        """Dibuja la pantalla de puntajes"""
+        titulo = self.fuente_titulo.render("TABLA DE PUNTAJES", True, VERDE)
+        rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 80))
+        self.ventana.blit(titulo, rect_titulo)
+        
+        # Dividir en dos columnas
+        x_izq = ANCHO_VENTANA // 4
+        x_der = 3 * ANCHO_VENTANA // 4
+        y_inicio = 150
+        
+        # Modo Escapa (izquierda)
+        titulo_escapa = self.fuente_grande.render("TOP 5 - MODO ESCAPA", True, AMARILLO)
+        rect_escapa = titulo_escapa.get_rect(center=(x_izq, y_inicio))
+        self.ventana.blit(titulo_escapa, rect_escapa)
+        
+        y = y_inicio + 50
+        top_escapa = self.sistema_puntuacion.obtener_top("escapa")
+        for i, p in enumerate(top_escapa, 1):
+            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, BLANCO)
+            self.ventana.blit(texto, (x_izq - 150, y))
+            y += 30
+        
+        # Modo Cazador (derecha)
+        titulo_cazador = self.fuente_grande.render("TOP 5 - MODO CAZADOR", True, AMARILLO)
+        rect_cazador = titulo_cazador.get_rect(center=(x_der, y_inicio))
+        self.ventana.blit(titulo_cazador, rect_cazador)
+        
+        y = y_inicio + 50
+        top_cazador = self.sistema_puntuacion.obtener_top("cazador")
+        for i, p in enumerate(top_cazador, 1):
+            texto = self.fuente.render(f"{i}. {p['nombre']}: {p['puntaje']} pts", True, BLANCO)
+            self.ventana.blit(texto, (x_der - 150, y))
+            y += 30
+        
+        # Instrucción
+        inst = self.fuente.render("Presiona ESC para volver al menú", True, GRIS)
+        rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, ALTO_VENTANA - 50))
+        self.ventana.blit(inst, rect_inst)
+    
+    def manejar_eventos_puntajes(self, evento):
+        """Maneja eventos de la pantalla de puntajes"""
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                self.estado = "menu_principal"
     
     def dibujar_registro(self):
         """Dibuja la pantalla de registro"""
@@ -196,6 +254,7 @@ class JuegoPygame:
         titulo = self.fuente_grande.render("SELECCIONA DIFICULTAD", True, VERDE)
         rect_titulo = titulo.get_rect(center=(ANCHO_VENTANA // 2, 150))
         self.ventana.blit(titulo, rect_titulo)
+        
         opciones = [
             ("1. FACIL", "Menos enemigos, más lentos - Multiplicador: x1.0"),
             ("2. NORMAL", "Balance de enemigos - Multiplicador: x1.5"),
@@ -203,30 +262,31 @@ class JuegoPygame:
         ]
         
         y = 250
-        for titulo_opcion, desc in opciones:
-            texto_titulo = self.fuente_grande.render(titulo_opcion, True, BLANCO)
-            rect = texto_titulo.get_rect(center=(ANCHO_VENTANA // 2, y))
-            self.ventana.blit(texto_titulo, rect)
+        for opcion, desc in opciones:
+            texto = self.fuente_grande.render(opcion, True, BLANCO)
+            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
+            self.ventana.blit(texto, rect)
             
-            texto_desc = self.fuente.render(desc, True, GRIS)
-            rect_desc = texto_desc.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
-            self.ventana.blit(texto_desc, rect_desc)
-            y += 100
+            desc_texto = self.fuente.render(desc, True, GRIS)
+            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
+            self.ventana.blit(desc_texto, rect_desc)
+            y += 90
+        
+        inst = self.fuente.render("Presiona 1, 2 o 3 para seleccionar", True, GRIS)
+        rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 550))
+        self.ventana.blit(inst, rect_inst)
     
     def manejar_eventos_dificultad(self, evento):
         """Maneja eventos de selección de dificultad"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
                 self.dificultad = "facil"
-                self.intervalo_enemigos = 1.5  # Más lento
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_2:
                 self.dificultad = "normal"
-                self.intervalo_enemigos = 1.0  # Normal
                 self.estado = "seleccion_modo"
             elif evento.key == pygame.K_3:
                 self.dificultad = "dificil"
-                self.intervalo_enemigos = 0.7  # Más rápido
                 self.estado = "seleccion_modo"
     
     def dibujar_seleccion_modo(self):
@@ -240,197 +300,215 @@ class JuegoPygame:
             ("2. MODO CAZADOR", "Atrapa a los enemigos antes de que escapen")
         ]
         
-        y = 300
-        for titulo_opcion, desc in opciones:
-            texto_titulo = self.fuente_grande.render(titulo_opcion, True, BLANCO)
-            rect = texto_titulo.get_rect(center=(ANCHO_VENTANA // 2, y))
-            self.ventana.blit(texto_titulo, rect)
+        y = 280
+        for opcion, desc in opciones:
+            texto = self.fuente_grande.render(opcion, True, BLANCO)
+            rect = texto.get_rect(center=(ANCHO_VENTANA // 2, y))
+            self.ventana.blit(texto, rect)
             
-            texto_desc = self.fuente.render(desc, True, GRIS)
-            rect_desc = texto_desc.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
-            self.ventana.blit(texto_desc, rect_desc)
+            desc_texto = self.fuente.render(desc, True, GRIS)
+            rect_desc = desc_texto.get_rect(center=(ANCHO_VENTANA // 2, y + 30))
+            self.ventana.blit(desc_texto, rect_desc)
             y += 100
+        
+        inst = self.fuente.render("Presiona 1 o 2 para seleccionar", True, GRIS)
+        rect_inst = inst.get_rect(center=(ANCHO_VENTANA // 2, 520))
+        self.ventana.blit(inst, rect_inst)
     
     def manejar_eventos_modo(self, evento):
         """Maneja eventos de selección de modo"""
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_1:
-                self.iniciar_modo_escapa()
+                self.modo_actual = "escapa"
+                self.iniciar_juego()
             elif evento.key == pygame.K_2:
-                self.iniciar_modo_cazador()
+                self.modo_actual = "cazador"
+                self.iniciar_juego()
     
-    def iniciar_modo_escapa(self):
-        """Inicia el modo escapa"""
-        self.modo_actual = "escapa"
-        self.inicializar_juego()
-    
-    def iniciar_modo_cazador(self):
-        """Inicia el modo cazador"""
-        self.modo_actual = "cazador"
-        self.inicializar_juego()
-    
-    def inicializar_juego(self):
-        """Inicializa el estado del juego"""
-        # Crear mapa
-        self.mapa = Mapa(15, 20)
-        
-        # Crear máximo 2 salidas
-        self.crear_salidas()
-        
-        # Crear jugador
-        self.jugador = Jugador(0, 0)
-        
-        # Configuración según dificultad
-        config = {
-            "facil": {"enemigos": 2},
-            "normal": {"enemigos": 3},
-            "dificil": {"enemigos": 5}
+    def iniciar_juego(self):
+        """Inicia una nueva partida"""
+        # ✅ CORRECCIÓN: Configuración según dificultad y modo
+        config_escapa = {
+            "facil": {"enemigos": 3, "intervalo": 1.0},
+            "normal": {"enemigos": 5, "intervalo": 0.75},
+            "dificil": {"enemigos": 6, "intervalo": 0.5}
         }
         
-        cfg = config[self.dificultad]
+        config_cazador = {
+            "facil": {"enemigos": 5, "intervalo": 1.0, "salidas": 1},
+            "normal": {"enemigos": 5, "intervalo": 0.75, "salidas": 2},
+            "dificil": {"enemigos": 4, "intervalo": 0.5, "salidas": 2}
+        }
         
-        # Crear enemigos
+        # Crear mapa
+        self.mapa = Mapa(20, 25)
+        
+        # ✅ CORRECCIÓN: Generar múltiples salidas según el modo
+        if self.modo_actual == "escapa":
+            # Modo Escapa: solo 1 salida
+            self.salidas = [self.mapa.pos_salida]
+            config = config_escapa[self.dificultad]
+        else:
+            # Modo Cazador: 1 o 2 salidas según dificultad
+            config = config_cazador[self.dificultad]
+            num_salidas = config["salidas"]
+            self.salidas = self.mapa.generar_salidas_multiples(num_salidas)
+        
+        # Crear jugador en posición inicial
+        self.jugador = Jugador(*self.mapa.pos_inicio)
+        
+        # ✅ CORRECCIÓN: Crear enemigos con configuración correcta
+        num_enemigos = config["enemigos"]
+        self.intervalo_enemigos = config["intervalo"]
+        
         self.enemigos = []
         posiciones_validas = self.mapa.obtener_posiciones_validas_enemigo()
         
-        for i in range(cfg["enemigos"]):
+        for i in range(num_enemigos):
             if posiciones_validas:
                 pos = random.choice(posiciones_validas)
                 posiciones_validas.remove(pos)
                 enemigo = Enemigo(pos[0], pos[1])
-                enemigo.eliminado = False  # Asegurar inicialización
                 self.enemigos.append(enemigo)
+        
+        # ✅ CORRECCIÓN: Inicializar puntaje según modo
+        if self.modo_actual == "escapa":
+            self.puntaje = 1500  # Inicia con 1500
+        else:
+            self.puntaje = 0  # Inicia en 0
         
         self.tiempo_inicio = time.time()
         self.ultimo_movimiento_enemigos = time.time()
-        self.puntaje = 0
+        self.ultimo_spawn_cazador = time.time()
         self.estado = "jugando"
-    
-    def crear_salidas(self):
-        """Crear máximo 2 salidas en el mapa"""
-        self.salidas = []
-        
-        # Primera salida: esquina inferior derecha
-        salida1 = (self.mapa.filas - 1, self.mapa.columnas - 1)
-        self.salidas.append(salida1)
-        
-        # Segunda salida: posición aleatoria en el borde
-        bordes = []
-        # Borde superior
-        for col in range(self.mapa.columnas):
-            if (0, col) != (0, 0):  # No en inicio
-                bordes.append((0, col))
-        # Borde inferior
-        for col in range(self.mapa.columnas):
-            if (self.mapa.filas - 1, col) != salida1:
-                bordes.append((self.mapa.filas - 1, col))
-        # Borde izquierdo
-        for fila in range(1, self.mapa.filas - 1):
-            bordes.append((fila, 0))
-        # Borde derecho
-        for fila in range(1, self.mapa.filas - 1):
-            bordes.append((fila, self.mapa.columnas - 1))
-        
-        if bordes:
-            salida2 = random.choice(bordes)
-            self.salidas.append(salida2)
     
     def manejar_eventos_juego(self, evento):
         """Maneja eventos durante el juego"""
         if evento.type == pygame.KEYDOWN:
-            movido = False
-            if evento.key == pygame.K_UP or evento.key == pygame.K_w:
-                movido = self.jugador.mover("arriba", self.mapa)
-            elif evento.key == pygame.K_DOWN or evento.key == pygame.K_s:
-                movido = self.jugador.mover("abajo", self.mapa)
-            elif evento.key == pygame.K_LEFT or evento.key == pygame.K_a:
-                movido = self.jugador.mover("izquierda", self.mapa)
-            elif evento.key == pygame.K_RIGHT or evento.key == pygame.K_d:
-                movido = self.jugador.mover("derecha", self.mapa)
+            # Movimiento del jugador
+            direccion = None
+            if evento.key == pygame.K_UP:
+                direccion = "arriba"
+            elif evento.key == pygame.K_DOWN:
+                direccion = "abajo"
+            elif evento.key == pygame.K_LEFT:
+                direccion = "izquierda"
+            elif evento.key == pygame.K_RIGHT:
+                direccion = "derecha"
             elif evento.key == pygame.K_SPACE:
+                # ✅ CORRECCIÓN: Solo permitir trampas en modo escapa
                 if self.modo_actual == "escapa":
                     if self.jugador.colocar_trampa():
-                        self.mostrar_mensaje("Trampa colocada!", 1.0)
-            elif evento.key == pygame.K_LSHIFT or evento.key == pygame.K_RSHIFT:
-                if self.jugador.correr(self.mapa):
-                    self.mostrar_mensaje("¡Corriendo!", 0.5)
-            if movido:
-                # Verificar colisiones con trampas
-                if self.modo_actual == "escapa":
-                    for enemigo in self.enemigos:
-                        if not enemigo.eliminado:
-                            if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
-                                enemigo.eliminar()
-                                self.puntaje += 50
-                                self.mostrar_mensaje("¡Trampa activada! +50 puntos", 1.0)
+                        self.mostrar_mensaje("¡Trampa colocada!", 1.0)
+            elif evento.key in [pygame.K_LSHIFT, pygame.K_RSHIFT]:
+                # ✅ CORRECCIÓN: Correr consume energía y permite movimiento rápido
+                self.jugador.activar_correr()
+            
+            if direccion:
+                # ✅ CORRECCIÓN: Movimiento con correr
+                if self.jugador.mover(direccion, self.mapa):
+                    pass  # Movimiento exitoso
     
     def actualizar_juego(self):
-        """Actualiza el estado del juego"""
-        # Mover enemigos solo cada X segundos
+        """Actualiza la lógica del juego"""
         tiempo_actual = time.time()
+        
+        # ✅ CORRECCIÓN: Actualizar energía del jugador
+        self.jugador.actualizar_energia(self.mapa)
+        
+        # ✅ CORRECCIÓN: Modo Cazador - verificar tiempo límite
+        if self.modo_actual == "cazador":
+            tiempo_transcurrido = tiempo_actual - self.tiempo_inicio
+            if tiempo_transcurrido >= self.tiempo_limite_cazador:
+                self.finalizar_juego_tiempo_cazador()
+                return
+        
+        # ✅ CORRECCIÓN: Modo Escapa - reducir puntos cada 5 segundos
+        if self.modo_actual == "escapa":
+            tiempo_transcurrido = tiempo_actual - self.tiempo_inicio
+            # Cada 5 segundos, reducir 50 puntos
+            puntos_perdidos = int(tiempo_transcurrido / 5) * 50
+            self.puntaje = max(0, 1500 - puntos_perdidos)
+        
+        # Mover enemigos según intervalo
         if tiempo_actual - self.ultimo_movimiento_enemigos >= self.intervalo_enemigos:
-            self.mover_enemigos()
+            for enemigo in self.enemigos:
+                if not enemigo.eliminado:
+                    if self.modo_actual == "escapa":
+                        enemigo.mover_hacia(self.jugador, self.mapa)
+                    else:  # modo cazador
+                        # ✅ CORRECCIÓN: Enemigos huyen hacia las salidas
+                        enemigo.huir_hacia_salida(self.jugador, self.mapa, self.salidas)
             self.ultimo_movimiento_enemigos = tiempo_actual
         
-        if self.modo_actual == "escapa":
-            self.actualizar_modo_escapa()
-        elif self.modo_actual == "cazador":
-            self.actualizar_modo_cazador()
-        
-        # Verificar reaparición de enemigos
-        for enemigo in self.enemigos:
-            if hasattr(enemigo, 'verificar_reaparicion'):
-                enemigo.verificar_reaparicion(self.mapa)
-    
-    def mover_enemigos(self):
-        """Mueve todos los enemigos"""
-        if self.modo_actual == "escapa":
-            for enemigo in self.enemigos:
-                if not enemigo.eliminado:
-                    enemigo.mover_hacia(self.jugador, self.mapa)
-        elif self.modo_actual == "cazador":
-            for enemigo in self.enemigos:
-                if not enemigo.eliminado:
-                    enemigo.huir_de(self.jugador, self.mapa)
-    
-    def actualizar_modo_escapa(self):
-        # Verificar si llegó a alguna salida
-        pos_jugador = self.jugador.obtener_posicion()
-        if pos_jugador in self.salidas:
-            self.finalizar_juego_victoria()
-        
         # Verificar colisiones con enemigos
-        for enemigo in self.enemigos:
-            if not enemigo.eliminado and pos_jugador == enemigo.obtener_posicion():
-                if self.jugador.perder_vida():
-                    self.finalizar_juego_derrota()
-                else:
-                    self.mostrar_mensaje(f"¡Atrapado! Vidas: {self.jugador.vida}", 2.0)
-                    # Reposicionar enemigo
-                    posiciones = self.mapa.obtener_posiciones_validas_enemigo()
-                    if posiciones:
-                        nueva_pos = random.choice(posiciones)
-                        enemigo.fila, enemigo.columna = nueva_pos
-    
-    def actualizar_modo_cazador(self):
-        # Verificar si atrapó un enemigo
         pos_jugador = self.jugador.obtener_posicion()
         for enemigo in self.enemigos:
-            if not enemigo.eliminado and pos_jugador == enemigo.obtener_posicion():
-                self.puntaje += 100
-                enemigo.eliminado = True
-                self.mostrar_mensaje("¡Enemigo atrapado! +100 puntos", 1.0)
-                # Reposicionar enemigo
-                posiciones = self.mapa.obtener_posiciones_validas_enemigo()
-                if posiciones:
-                    nueva_pos = random.choice(posiciones)
-                    enemigo.fila, enemigo.columna = nueva_pos
-                    enemigo.eliminado = False
+            if not enemigo.eliminado:
+                if pos_jugador == enemigo.obtener_posicion():
+                    if self.modo_actual == "escapa":
+                        # ✅ CORRECCIÓN: Perder vida y reaparecer en inicio
+                        if self.jugador.perder_vida():
+                            self.finalizar_juego_derrota()
+                            return
+                        else:
+                            # Reaparecer en posición inicial
+                            self.jugador.fila, self.jugador.columna = self.mapa.pos_inicio
+                            self.mostrar_mensaje(f"¡Atrapado! Vidas: {self.jugador.vida}", 2.0)
+                    else:  # modo cazador
+                        # ✅ CORRECCIÓN: Atrapar enemigo
+                        self.enemigos.remove(enemigo)
+                        self.puntaje += 100
+                        self.mostrar_mensaje("¡Enemigo atrapado! +100 pts", 1.0)
+                        # Generar nuevo enemigo inmediatamente
+                        self.generar_nuevo_enemigo()
+        
+        # ✅ CORRECCIÓN: Modo Escapa - verificar trampas
+        if self.modo_actual == "escapa":
+            for enemigo in self.enemigos[:]:  # Copiar lista para modificar
+                if not enemigo.eliminado:
+                    if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
+                        enemigo.eliminar()
+                        self.puntaje += 100  # ✅ +100 por trampa
+                        self.mostrar_mensaje("¡Trampa activada! +100 pts", 1.0)
+                        # ✅ CORRECCIÓN: Reaparecer inmediatamente
+                        self.generar_nuevo_enemigo()
+            
+            # Verificar reaparición de enemigos (después de 10 segundos)
+            for enemigo in self.enemigos:
+                enemigo.verificar_reaparicion(self.mapa)
+        
+        # ✅ CORRECCIÓN: Modo Cazador - enemigos escapan por salidas
+        if self.modo_actual == "cazador":
+            for enemigo in self.enemigos[:]:  # Copiar lista
+                if not enemigo.eliminado:
+                    if enemigo.obtener_posicion() in self.salidas:
+                        self.enemigos.remove(enemigo)
+                        self.puntaje = max(0, self.puntaje - 50)  # ✅ -50 puntos
+                        self.mostrar_mensaje("¡Enemigo escapó! -50 pts", 1.0)
+                        # Generar nuevo enemigo
+                        self.generar_nuevo_enemigo()
+        
+        # ✅ CORRECCIÓN: Verificar victoria (llegar a la salida)
+        if pos_jugador in self.salidas:
+            if self.modo_actual == "escapa":
+                self.finalizar_juego_victoria()
+    
+    def generar_nuevo_enemigo(self):
+        """Genera un nuevo enemigo en una posición válida"""
+        posiciones_validas = self.mapa.obtener_posiciones_validas_para_captura(self.jugador)
+        if posiciones_validas:
+            pos = random.choice(posiciones_validas)
+            nuevo_enemigo = Enemigo(pos[0], pos[1])
+            self.enemigos.append(nuevo_enemigo)
     
     def dibujar_juego(self):
+        """Dibuja el estado del juego"""
         # Calcular offset para centrar el mapa
+        ancho_mapa = self.mapa.columnas * TAMANO_CELDA
+        alto_mapa = self.mapa.filas * TAMANO_CELDA
         offset_x = 50
-        offset_y = (ALTO_VENTANA - self.mapa.filas * TAMANO_CELDA) // 2
+        offset_y = (ALTO_VENTANA - alto_mapa) // 2
         
         # Dibujar mapa
         for fila in range(self.mapa.filas):
@@ -438,33 +516,37 @@ class JuegoPygame:
                 x = offset_x + col * TAMANO_CELDA
                 y = offset_y + fila * TAMANO_CELDA
                 
-                # Determinar color según tipo de casilla
+                # Determinar color según tipo de terreno
                 casilla = self.mapa.matriz[fila][col]
-                if casilla.codigo == 0:  # Camino
-                    color = COLOR_CAMINO
-                elif casilla.codigo == 1:  # Muro
-                    color = COLOR_MURO
-                elif casilla.codigo == 2:  # Túnel (CYAN - solo jugador)
-                    color = COLOR_TUNEL
-                elif casilla.codigo == 3:  # Liana (VERDE OSCURO - solo enemigos)
-                    color = COLOR_LIANA
+                codigo = casilla.codigo
                 
-                # Dibujar casilla
+                if codigo == 0:  # Camino
+                    color = COLOR_CAMINO
+                elif codigo == 1:  # Muro
+                    color = COLOR_MURO
+                elif codigo == 2:  # Túnel
+                    color = COLOR_TUNEL
+                elif codigo == 3:  # Liana
+                    color = COLOR_LIANA
+                else:
+                    color = NEGRO
+                
                 pygame.draw.rect(self.ventana, color, (x, y, TAMANO_CELDA, TAMANO_CELDA))
                 pygame.draw.rect(self.ventana, GRIS, (x, y, TAMANO_CELDA, TAMANO_CELDA), 1)
                 
-                # ✅ CORRECCIÓN: Marcar salidas con verde brillante
+                # ✅ CORRECCIÓN: Dibujar todas las salidas
                 if (fila, col) in self.salidas:
                     pygame.draw.rect(self.ventana, COLOR_SALIDA, 
                                    (x + 3, y + 3, TAMANO_CELDA - 6, TAMANO_CELDA - 6), 3)
         
-        # Dibujar trampas
-        for trampa in self.jugador.trampas_activas:
-            fila, col = trampa['posicion']
-            x = offset_x + col * TAMANO_CELDA
-            y = offset_y + fila * TAMANO_CELDA
-            pygame.draw.circle(self.ventana, COLOR_TRAMPA, 
-                             (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 4)
+        # ✅ CORRECCIÓN: Solo dibujar trampas en modo escapa
+        if self.modo_actual == "escapa":
+            for trampa in self.jugador.trampas_activas:
+                fila, col = trampa['posicion']
+                x = offset_x + col * TAMANO_CELDA
+                y = offset_y + fila * TAMANO_CELDA
+                pygame.draw.circle(self.ventana, COLOR_TRAMPA, 
+                                 (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 4)
         
         # Dibujar enemigos
         for enemigo in self.enemigos:
@@ -481,6 +563,8 @@ class JuegoPygame:
         y = offset_y + fila * TAMANO_CELDA
         pygame.draw.circle(self.ventana, COLOR_JUGADOR, 
                          (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2), TAMANO_CELDA // 3)
+        
+        # Dibujar HUD
         hud_x = offset_x + self.mapa.columnas * TAMANO_CELDA + 40
         self.dibujar_hud(hud_x, offset_y)
         
@@ -488,7 +572,6 @@ class JuegoPygame:
         if self.mensaje and time.time() - self.tiempo_mensaje < 2.0:
             texto_msg = self.fuente_grande.render(self.mensaje, True, AMARILLO)
             rect_msg = texto_msg.get_rect(center=(ANCHO_VENTANA // 2, 50))
-            # Fondo semi-transparente
             fondo = pygame.Surface((texto_msg.get_width() + 20, texto_msg.get_height() + 10))
             fondo.fill(NEGRO)
             fondo.set_alpha(200)
@@ -499,16 +582,26 @@ class JuegoPygame:
         """Dibuja el HUD con información del juego"""
         y_actual = y
         
+        # ✅ CORRECCIÓN: Mostrar tiempo según modo
+        if self.modo_actual == "escapa":
+            tiempo_texto = f"Tiempo: {int(time.time() - self.tiempo_inicio)}s"
+        else:  # cazador
+            tiempo_restante = self.tiempo_limite_cazador - int(time.time() - self.tiempo_inicio)
+            tiempo_texto = f"Tiempo: {max(0, tiempo_restante)}s"
+        
         # Información del jugador
         textos_info = [
             f"JUGADOR: {self.nombre_jugador}",
             f"MODO: {self.modo_actual.upper()}",
             f"DIFICULTAD: {self.dificultad.upper()}",
             "",
-            f"Tiempo: {int(time.time() - self.tiempo_inicio)}s",
-            f"Vidas: {'❤️ ' * self.jugador.vida}",
+            tiempo_texto,
             f"Puntaje: {self.puntaje}",
         ]
+        
+        # ✅ Solo mostrar vidas en modo escapa
+        if self.modo_actual == "escapa":
+            textos_info.insert(5, f"Vidas: {'❤️ ' * self.jugador.vida}")
         
         for texto in textos_info:
             if texto == "":
@@ -555,8 +648,14 @@ class JuegoPygame:
         controles = [
             "CONTROLES:",
             "Flechas: Mover",
-            "ESPACIO: Trampa",
-            "SHIFT: Correr",
+            "SHIFT: Correr (1s)",
+        ]
+        
+        # ✅ Solo mostrar trampa en modo escapa
+        if self.modo_actual == "escapa":
+            controles.insert(2, "ESPACIO: Trampa")
+        
+        controles.extend([
             "",
             "LEYENDA:",
             "⚪ Blanco: Camino",
@@ -566,8 +665,10 @@ class JuegoPygame:
             "✨ Verde brillante: Salida",
             "🔵 Azul: Jugador",
             "🔴 Rojo: Enemigo",
-            "🟡 Amarillo: Trampa"
-        ]
+        ])
+        
+        if self.modo_actual == "escapa":
+            controles.append("🟡 Amarillo: Trampa")
         
         for texto in controles:
             if texto == "":
@@ -586,19 +687,14 @@ class JuegoPygame:
         """Finaliza el juego con victoria"""
         tiempo_total = int(time.time() - self.tiempo_inicio)
         
-        # Calcular bonificación por tiempo
-        if tiempo_total < 30:
-            bonus = 500
-        elif tiempo_total < 60:
-            bonus = 300
-        else:
-            bonus = 150
+        # ✅ CORRECCIÓN: Bonificación por salir + 1000 puntos
+        self.puntaje += 1000
         
         # Multiplicador por dificultad
         multiplicadores = {"facil": 1.0, "normal": 1.5, "dificil": 2.0}
         mult = multiplicadores[self.dificultad]
         
-        self.puntaje = int((1000 + bonus + self.puntaje) * mult)
+        self.puntaje = int(self.puntaje * mult)
         self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, self.puntaje, self.modo_actual)
         
         self.estado = "game_over"
@@ -614,6 +710,17 @@ class JuegoPygame:
         
         self.estado = "game_over"
         self.mensaje = "GAME OVER"
+    
+    def finalizar_juego_tiempo_cazador(self):
+        """Finaliza el juego por tiempo en modo cazador"""
+        multiplicadores = {"facil": 1.0, "normal": 1.5, "dificil": 2.0}
+        mult = multiplicadores[self.dificultad]
+        
+        self.puntaje = int(self.puntaje * mult)
+        self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, self.puntaje, self.modo_actual)
+        
+        self.estado = "game_over"
+        self.mensaje = "TIEMPO AGOTADO"
     
     def dibujar_game_over(self):
         """Dibuja la pantalla de game over"""
@@ -636,21 +743,6 @@ class JuegoPygame:
             if evento.key == pygame.K_SPACE:
                 self.nombre_jugador = ""
                 self.estado = "menu_principal"
-    
-    def mostrar_puntajes(self):
-        """Muestra los puntajes en consola"""
-        print("\n" + "="*50)
-        print("TOP 5 - MODO ESCAPA")
-        print("="*50)
-        for i, p in enumerate(self.sistema_puntuacion.obtener_top("escapa"), 1):
-            print(f"{i}. {p['nombre']}: {p['puntaje']} pts")
-        
-        print("\n" + "="*50)
-        print("TOP 5 - MODO CAZADOR")
-        print("="*50)
-        for i, p in enumerate(self.sistema_puntuacion.obtener_top("cazador"), 1):
-            print(f"{i}. {p['nombre']}: {p['puntaje']} pts")
-        print("="*50 + "\n")
 
 if __name__ == "__main__":
     juego = JuegoPygame()

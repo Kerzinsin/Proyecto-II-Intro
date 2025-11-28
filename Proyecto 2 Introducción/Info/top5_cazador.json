@@ -1,7 +1,17 @@
 [
     {
+        "nombre": "Angie",
+        "puntaje": 1300,
+        "fecha": "2025-11-28 09:47"
+    },
+    {
         "nombre": "Ana",
         "puntaje": 500,
         "fecha": "2025-11-25 12:45"
+    },
+    {
+        "nombre": "Ana",
+        "puntaje": 500,
+        "fecha": "2025-11-27 20:59"
     }
 ]

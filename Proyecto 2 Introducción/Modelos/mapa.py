@@ -1,4 +1,4 @@
-#Mapa
+#Mapa - VERSIÓN CORREGIDA
 
 import random
 from collections import deque
@@ -15,7 +15,7 @@ class Mapa:
         self.generar_mapa()
 
     def generar_mapa(self):
-        """Genera un mapa aleatorio garantizando un camino válido"""
+        """✅ CORRECCIÓN: Genera un mapa aleatorio garantizando camino válido y salidas solo en caminos"""
         intentos = 0
         max_intentos = 100
         
@@ -29,24 +29,70 @@ class Mapa:
                 for _ in range(self.filas)
             ]
             
-            # Asegurar inicio y salida como caminos
+            # ✅ CORRECCIÓN: Asegurar inicio como camino
             self.pos_inicio = (0, 0)
-            self.pos_salida = (self.filas - 1, self.columnas - 1)
-            
             self.matriz[0][0] = Camino()
-            self.matriz[self.filas - 1][self.columnas - 1] = Camino()
+            
+            # ✅ CORRECCIÓN: Buscar una posición válida para la salida (solo en caminos)
+            self.pos_salida = self._generar_salida_valida()
             
             # Verificar si existe camino válido
             if self._existe_camino_valido():
-                print("Mapa generado con camino válido.")
                 return
             
             intentos += 1
         
         # Si después de 100 intentos no se generó un camino válido,
         # crear un camino forzado
-        print("Creando camino forzado...")
         self._crear_camino_forzado()
+    
+    def _generar_salida_valida(self):
+        """✅ CORRECCIÓN: Genera una salida válida solo en caminos"""
+        # Intentar en la esquina inferior derecha primero
+        if isinstance(self.matriz[self.filas - 1][self.columnas - 1], Camino):
+            return (self.filas - 1, self.columnas - 1)
+        
+        # Si no es camino, forzar que lo sea
+        self.matriz[self.filas - 1][self.columnas - 1] = Camino()
+        return (self.filas - 1, self.columnas - 1)
+    
+    def generar_salidas_multiples(self, num_salidas):
+        """✅ NUEVO: Genera múltiples salidas en posiciones válidas (solo caminos)"""
+        salidas = [self.pos_salida]  # Incluir la salida principal
+        
+        if num_salidas <= 1:
+            return salidas
+        
+        # Buscar posiciones válidas en los bordes del mapa (solo caminos)
+        posiciones_borde = []
+        
+        # Borde superior (excluyendo inicio)
+        for c in range(1, self.columnas):
+            if isinstance(self.matriz[0][c], Camino):
+                posiciones_borde.append((0, c))
+        
+        # Borde inferior
+        for c in range(self.columnas - 1):
+            if isinstance(self.matriz[self.filas - 1][c], Camino):
+                posiciones_borde.append((self.filas - 1, c))
+        
+        # Borde izquierdo (excluyendo inicio)
+        for f in range(1, self.filas):
+            if isinstance(self.matriz[f][0], Camino):
+                posiciones_borde.append((f, 0))
+        
+        # Borde derecho
+        for f in range(self.filas - 1):
+            if isinstance(self.matriz[f][self.columnas - 1], Camino):
+                posiciones_borde.append((f, self.columnas - 1))
+        
+        # Seleccionar salidas adicionales
+        num_adicionales = min(num_salidas - 1, len(posiciones_borde))
+        if num_adicionales > 0:
+            salidas_adicionales = random.sample(posiciones_borde, num_adicionales)
+            salidas.extend(salidas_adicionales)
+        
+        return salidas
 
     def _existe_camino_valido(self):
         """Verifica si existe un camino válido del inicio a la salida usando BFS"""
@@ -146,12 +192,33 @@ class Mapa:
         self.mostrar_con_jugador_enemigo(jugador, enemigos)
 
     def obtener_posiciones_validas_enemigo(self):
-        """Retorna lista de posiciones válidas para spawneo de enemigos"""
+        """✅ CORRECCIÓN: Retorna lista de posiciones válidas para spawneo de enemigos (caminos y lianas)"""
         posiciones = []
         for f in range(self.filas):
             for c in range(self.columnas):
-                if self.matriz[f][c].puede_pasar_enemigo():
+                casilla = self.matriz[f][c]
+                # Los enemigos pueden spawnearse en caminos y lianas
+                if casilla.puede_pasar_enemigo():
                     # No spawn en inicio ni salida
                     if (f, c) != self.pos_inicio and (f, c) != self.pos_salida:
                         posiciones.append((f, c))
         return posiciones
+    
+    def obtener_posiciones_validas_para_captura(self, jugador):
+        """✅ NUEVO: Retorna posiciones donde los enemigos pueden ser capturados (no en túneles)"""
+        posiciones = []
+        pos_jugador = jugador.obtener_posicion()
+        
+        for f in range(self.filas):
+            for c in range(self.columnas):
+                casilla = self.matriz[f][c]
+                # Solo caminos y lianas (no túneles, porque el jugador no puede ir ahí)
+                if isinstance(casilla, Camino) or isinstance(casilla, Liana):
+                    # No spawn en inicio, salida, ni muy cerca del jugador
+                    if (f, c) != self.pos_inicio and (f, c) != self.pos_salida:
+                        # No muy cerca del jugador
+                        dist = abs(f - pos_jugador[0]) + abs(c - pos_jugador[1])
+                        if dist >= 5:  # Al menos 5 casillas de distancia
+                            posiciones.append((f, c))
+        
+        return posiciones if posiciones else self.obtener_posiciones_validas_enemigo()
