@@ -46,3 +46,29 @@ Nivel Intermedio:
 - Tres vidas
 - Enemigos se mueven cada 0,75 segundos
 
+Nivel Díficil:
+- Se conforma de 6 enemigos
+- Trampa activa otorga 100 puntos adicionales
+- Escapar otorga 3000 puntos
+- Tres vidas
+- Enemigos se mueven cada 0,5 segundos
+
+Modo Cazador: Tiene como límite 2 minutos para conseguir la mayor cantidad de puntos, en este modo no se pueden usar trampas. El puntaje inicial es 0.
+
+Nivel Fácil:
+- 1 salida
+- 5 enemigos
+- Mas 100 puntos por atrapar al enemigo
+- Menos 50 puntos por enemigo que logre escapar
+
+Nivel Intermedio:
+- 2 salidas
+- 5 enemigos
+- Mas 100 puntos por atrapar al enemigo
+- Menos 50 puntos por enemigo que logre escapar
+
+Nivel Díficil:
+- 2 salidas
+- 4 enemigos
+- Mas 100 puntos por atrapar al enemigo
+- Menos 50 puntos por enemigo que logre escapar
