@@ -1,5 +1,10 @@
 [
     {
+        "nombre": "Kerzin",
+        "puntaje": 2100,
+        "fecha": "2025-11-28 12:45"
+    },
+    {
         "nombre": "Mariela",
         "puntaje": 2025,
         "fecha": "2025-11-28 10:08"
@@ -15,13 +20,8 @@
         "fecha": "2025-11-28 10:11"
     },
     {
-        "nombre": "Ana",
-        "puntaje": 500,
-        "fecha": "2025-11-25 12:45"
-    },
-    {
-        "nombre": "Ana",
-        "puntaje": 500,
-        "fecha": "2025-11-27 20:59"
+        "nombre": "sdfghjk",
+        "puntaje": 1100,
+        "fecha": "2025-11-28 12:50"
     }
 ]

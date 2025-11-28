@@ -1,27 +1,27 @@
 [
     {
+        "nombre": "HOLA",
+        "puntaje": 4700,
+        "fecha": "2025-11-28 12:46"
+    },
+    {
+        "nombre": "Kerzin",
+        "puntaje": 3000,
+        "fecha": "2025-11-28 12:45"
+    },
+    {
+        "nombre": "HOLA",
+        "puntaje": 2700,
+        "fecha": "2025-11-28 12:48"
+    },
+    {
+        "nombre": "Hola",
+        "puntaje": 2600,
+        "fecha": "2025-11-28 12:46"
+    },
+    {
         "nombre": "Angie",
         "puntaje": 2250,
         "fecha": "2025-11-27 20:59"
-    },
-    {
-        "nombre": "ans",
-        "puntaje": 2250,
-        "fecha": "2025-11-28 09:43"
-    },
-    {
-        "nombre": "Angie",
-        "puntaje": 2200,
-        "fecha": "2025-11-28 10:09"
-    },
-    {
-        "nombre": "Angiue",
-        "puntaje": 1950,
-        "fecha": "2025-11-27 21:00"
-    },
-    {
-        "nombre": "Mariela",
-        "puntaje": 1800,
-        "fecha": "2025-11-28 09:43"
     }
 ]
