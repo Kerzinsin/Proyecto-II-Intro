@@ -12,7 +12,7 @@ class Jugador:
         
         self.corriendo = False
         self.tiempo_inicio_correr = None
-        self.duracion_correr = 1.0
+        self.duracion_correr = 3.0
         
         self.en_tunel = False
         self.tiempo_en_tunel = None
