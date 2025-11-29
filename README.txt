@@ -132,4 +132,10 @@ Este proyecto fue desarrollado con fines académicos para el curso de Introducci
 
 ## 🎓 Agradecimientos
 
+Agradecemos al Instituto Tecnológico de Costa Rica y al equipo docente del curso por su guía durante el desarrollo de este proyecto.ca.
+
+---
+
+## 🎓 Agradecimientos
+
 Agradecemos al Instituto Tecnológico de Costa Rica y al equipo docente del curso por su guía durante el desarrollo de este proyecto.
