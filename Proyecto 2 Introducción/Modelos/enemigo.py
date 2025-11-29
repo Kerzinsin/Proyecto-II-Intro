@@ -3,21 +3,29 @@ import time
 from Modelos.terreno import Camino, Liana
 
 class Enemigo:    
-    def __init__(self, fila, columna):
+    def __init__(self, fila, columna, dificultad="normal"):
         self.fila = fila
         self.columna = columna
         self.eliminado = False
         self.tiempo_eliminacion = None
+        self.dificultad = dificultad
+        
+        # Tiempos de reaparición según dificultad (en segundos)
+        # Fácil: 10 minutos = 600 segundos
+        # Normal: 5 minutos = 300 segundos
+        # Difícil: 3 minutos = 180 segundos
+        self.tiempos_reaparicion = {
+            "facil": 600,    # 10 minutos
+            "normal": 300,   # 5 minutos
+            "dificil": 180   # 3 minutos
+        }
 
     def obtener_posicion(self):
         return self.fila, self.columna
 
     def puede_moverse(self, mapa, nueva_fila, nueva_columna):
         """Verifica si el enemigo puede moverse a una posición"""
-        if 0 <= nueva_fila < mapa.filas and 0 <= nueva_columna < mapa.columnas:
-            casilla_destino = mapa.matriz[nueva_fila][nueva_columna]
-            return casilla_destino.puede_pasar_enemigo()
-        return False
+        return mapa.puede_pasar_enemigo(nueva_fila, nueva_columna)
 
     def mover_aleatorio(self, mapa):
         """Mueve el enemigo aleatoriamente"""
@@ -168,9 +176,10 @@ class Enemigo:
         self.tiempo_eliminacion = time.time()
 
     def verificar_reaparicion(self, mapa):
-        """Verifica si el enemigo debe reaparecer después de 10 segundos"""
+        """Verifica si el enemigo debe reaparecer según el tiempo de dificultad"""
         if self.eliminado and self.tiempo_eliminacion:
-            if time.time() - self.tiempo_eliminacion >= 10:
+            tiempo_reaparicion = self.tiempos_reaparicion.get(self.dificultad, 300)
+            if time.time() - self.tiempo_eliminacion >= tiempo_reaparicion:
                 self.reaparecer(mapa)
 
     def reaparecer(self, mapa):

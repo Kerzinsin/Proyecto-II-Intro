@@ -97,6 +97,9 @@ class JuegoPygame:
         self.animacion_tiempo = 0
         self.ultima_posicion_jugador = None
         
+        # Tracking de puntos de trampa para modo escapa
+        self.puntos_trampa = 0
+        
         self.gestor_sonidos.reproducir_musica()
         
     def ejecutar(self):
@@ -448,13 +451,15 @@ class JuegoPygame:
             if posiciones_validas:
                 pos = random.choice(posiciones_validas)
                 posiciones_validas.remove(pos)
-                enemigo = Enemigo(pos[0], pos[1])
+                enemigo = Enemigo(pos[0], pos[1], dificultad=self.dificultad)
                 self.enemigos.append(enemigo)
         
         if self.modo_actual == "escapa":
             self.puntaje = 1500
+            self.puntos_trampa = 0
         else:
             self.puntaje = 0
+            self.puntos_trampa = 0
         
         self.tiempo_inicio = time.time()
         self.ultimo_movimiento_enemigos = time.time()
@@ -475,6 +480,16 @@ class JuegoPygame:
                 direccion = "derecha"
             elif evento.key == pygame.K_SPACE:
                 if self.modo_actual == "escapa":
+                    # Verificar cooldown de 5 segundos después de matar un enemigo
+                    pos_actual = self.jugador.obtener_posicion()
+                    tiempo_actual = time.time()
+                    if pos_actual in self.jugador.cooldown_trampa:
+                        tiempo_cooldown = self.jugador.cooldown_trampa[pos_actual]
+                        if tiempo_actual - tiempo_cooldown < 5:
+                            tiempo_restante = int(5 - (tiempo_actual - tiempo_cooldown))
+                            self.mostrar_mensaje(f"Cooldown: {tiempo_restante}s", 1.0)
+                            return
+                    
                     if self.jugador.colocar_trampa():
                         self.gestor_sonidos.reproducir_sonido('trampa_colocada')
                         self.mostrar_mensaje("¡Trampa colocada!", 1.0)
@@ -543,8 +558,13 @@ class JuegoPygame:
                     if self.jugador.verificar_trampa_activada(enemigo.obtener_posicion()):
                         self.gestor_sonidos.reproducir_sonido('trampa_activada')
                         enemigo.eliminar()
-                        self.puntaje += 100
+                        puntos_trampa = 100
+                        self.puntaje += puntos_trampa
+                        self.puntos_trampa += puntos_trampa
                         self.mostrar_mensaje("¡Trampa activada! +100 pts", 1.0)
+                        # Activar cooldown de 5 segundos para la posición de la trampa
+                        pos_trampa = enemigo.obtener_posicion()
+                        self.jugador.cooldown_trampa[pos_trampa] = time.time()
                         self.generar_nuevo_enemigo()
             
             for enemigo in self.enemigos:
@@ -565,9 +585,8 @@ class JuegoPygame:
                 self.gestor_sonidos.reproducir_sonido('victoria')
                 self.finalizar_juego_victoria()
         
-        casilla_actual = self.mapa.matriz[pos_jugador[0]][pos_jugador[1]]
-        from Modelos.terreno import Tunel
-        if isinstance(casilla_actual, Tunel) and self.jugador.energia < 100:
+        codigo_actual = self.mapa.obtener_codigo(pos_jugador[0], pos_jugador[1])
+        if codigo_actual == self.mapa.CODIGO_TUNEL and self.jugador.energia < 100:
             if random.random() < 0.1:
                 self.gestor_sonidos.reproducir_sonido('energia_recuperada', 0.2)
     
@@ -576,7 +595,7 @@ class JuegoPygame:
         posiciones_validas = self.mapa.obtener_posiciones_validas_para_captura(self.jugador)
         if posiciones_validas:
             pos = random.choice(posiciones_validas)
-            nuevo_enemigo = Enemigo(pos[0], pos[1])
+            nuevo_enemigo = Enemigo(pos[0], pos[1], dificultad=self.dificultad)
             self.enemigos.append(nuevo_enemigo)
     
     def dibujar_juego(self):
@@ -595,8 +614,7 @@ class JuegoPygame:
                 x = offset_x + col * TAMANO_CELDA
                 y = offset_y + fila * TAMANO_CELDA
                 
-                casilla = self.mapa.matriz[fila][col]
-                codigo = casilla.codigo
+                codigo = self.mapa.obtener_codigo(fila, col)
                 
                 if codigo == 0:  # Camino
                     color_base = COLOR_CAMINO
@@ -846,11 +864,14 @@ class JuegoPygame:
         """Finaliza el juego con victoria"""
         tiempo_total = int(time.time() - self.tiempo_inicio)
         
+        # Asegurar que los puntos de trampa estén incluidos
+        # Los puntos de trampa ya están en self.puntaje, pero los guardamos explícitamente
         self.puntaje += 1000
         
         multiplicadores = {"facil": 1.0, "normal": 1.5, "dificil": 2.0}
         mult = multiplicadores[self.dificultad]
         
+        # El puntaje ya incluye los puntos de trampa (self.puntos_trampa está incluido en self.puntaje)
         self.puntaje = int(self.puntaje * mult)
         self.sistema_puntuacion.guardar_puntaje(self.nombre_jugador, self.puntaje, self.modo_actual)
         

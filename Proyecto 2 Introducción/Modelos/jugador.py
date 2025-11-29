@@ -1,5 +1,4 @@
 import time
-from Modelos.terreno import Tunel
 
 class Jugador:
     def __init__(self, fila, columna):
@@ -22,10 +21,7 @@ class Jugador:
         return self.fila, self.columna
 
     def puede_moverse(self, mapa, nueva_fila, nueva_columna):
-        if 0 <= nueva_fila < mapa.filas and 0 <= nueva_columna < mapa.columnas:
-            casilla_destino = mapa.matriz[nueva_fila][nueva_columna]
-            return casilla_destino.puede_pasar_jugador()
-        return False
+        return mapa.puede_pasar_jugador(nueva_fila, nueva_columna)
 
     def mover(self, direccion, mapa):
         """Mueve al jugador en la dirección especificada"""
@@ -63,9 +59,9 @@ class Jugador:
                 self.corriendo = False
                 self.tiempo_inicio_correr = None
         
-        casilla_actual = mapa.matriz[self.fila][self.columna]
+        codigo_actual = mapa.obtener_codigo(self.fila, self.columna)
         
-        if isinstance(casilla_actual, Tunel):
+        if codigo_actual == mapa.CODIGO_TUNEL:
             if not self.en_tunel:
                 self.en_tunel = True
                 self.tiempo_en_tunel = tiempo_actual

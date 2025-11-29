@@ -3,14 +3,53 @@ from collections import deque
 from Modelos.terreno import Camino, Muro, Tunel, Liana
 
 class Mapa:
+    # Códigos numéricos para la matriz (obligatorio según instrucciones)
+    CODIGO_CAMINO = 0
+    CODIGO_MURO = 1
+    CODIGO_TUNEL = 2
+    CODIGO_LIANA = 3
+    
     def __init__(self, filas, columnas):
         self.filas = filas
         self.columnas = columnas
-        self.matriz = []
+        self.matriz = []  # Matriz numérica obligatoria
         self.pos_inicio = None
         self.pos_salida = None
         self.trampas = []  
         self.generar_mapa()
+    
+    def puede_pasar_jugador(self, fila, columna):
+        """Verifica si el jugador puede pasar por una posición"""
+        if 0 <= fila < self.filas and 0 <= columna < self.columnas:
+            codigo = self.matriz[fila][columna]
+            # Jugador puede pasar por Camino (0) y Tunel (2)
+            return codigo == self.CODIGO_CAMINO or codigo == self.CODIGO_TUNEL
+        return False
+    
+    def puede_pasar_enemigo(self, fila, columna):
+        """Verifica si el enemigo puede pasar por una posición"""
+        if 0 <= fila < self.filas and 0 <= columna < self.columnas:
+            codigo = self.matriz[fila][columna]
+            # Enemigo puede pasar por Camino (0) y Liana (3)
+            return codigo == self.CODIGO_CAMINO or codigo == self.CODIGO_LIANA
+        return False
+    
+    def obtener_codigo(self, fila, columna):
+        """Obtiene el código numérico de una posición"""
+        if 0 <= fila < self.filas and 0 <= columna < self.columnas:
+            return self.matriz[fila][columna]
+        return self.CODIGO_MURO
+    
+    def obtener_simbolo(self, fila, columna):
+        """Obtiene el símbolo de una posición basado en su código"""
+        codigo = self.obtener_codigo(fila, columna)
+        simbolos = {
+            self.CODIGO_CAMINO: " ",
+            self.CODIGO_MURO: "#",
+            self.CODIGO_TUNEL: "T",
+            self.CODIGO_LIANA: "L"
+        }
+        return simbolos.get(codigo, "#")
 
     def generar_mapa(self):
         """Genera un mapa aleatorio garantizando camino válido"""
@@ -18,16 +57,17 @@ class Mapa:
         max_intentos = 100
         
         while intentos < max_intentos:
-            tipos_casillas = [Camino, Muro, Tunel, Liana]
+            # Generar matriz numérica (obligatorio según instrucciones)
+            codigos = [self.CODIGO_CAMINO, self.CODIGO_MURO, self.CODIGO_TUNEL, self.CODIGO_LIANA]
             pesos = [50, 20, 15, 15]
             
             self.matriz = [
-                [random.choices(tipos_casillas, weights=pesos)[0]() for _ in range(self.columnas)]
+                [random.choices(codigos, weights=pesos)[0] for _ in range(self.columnas)]
                 for _ in range(self.filas)
             ]
             
             self.pos_inicio = (0, 0)
-            self.matriz[0][0] = Camino()
+            self.matriz[0][0] = self.CODIGO_CAMINO
             
             self.pos_salida = self._generar_salida_valida()
             
@@ -40,10 +80,10 @@ class Mapa:
     
     def _generar_salida_valida(self):
         """Genera una salida válida en un camino"""
-        if isinstance(self.matriz[self.filas - 1][self.columnas - 1], Camino):
+        if self.matriz[self.filas - 1][self.columnas - 1] == self.CODIGO_CAMINO:
             return (self.filas - 1, self.columnas - 1)
         
-        self.matriz[self.filas - 1][self.columnas - 1] = Camino()
+        self.matriz[self.filas - 1][self.columnas - 1] = self.CODIGO_CAMINO
         return (self.filas - 1, self.columnas - 1)
     
     def generar_salidas_multiples(self, num_salidas):
@@ -56,19 +96,19 @@ class Mapa:
         posiciones_borde = []
         
         for c in range(1, self.columnas):
-            if isinstance(self.matriz[0][c], Camino):
+            if self.matriz[0][c] == self.CODIGO_CAMINO:
                 posiciones_borde.append((0, c))
         
         for c in range(self.columnas - 1):
-            if isinstance(self.matriz[self.filas - 1][c], Camino):
+            if self.matriz[self.filas - 1][c] == self.CODIGO_CAMINO:
                 posiciones_borde.append((self.filas - 1, c))
         
         for f in range(1, self.filas):
-            if isinstance(self.matriz[f][0], Camino):
+            if self.matriz[f][0] == self.CODIGO_CAMINO:
                 posiciones_borde.append((f, 0))
         
         for f in range(self.filas - 1):
-            if isinstance(self.matriz[f][self.columnas - 1], Camino):
+            if self.matriz[f][self.columnas - 1] == self.CODIGO_CAMINO:
                 posiciones_borde.append((f, self.columnas - 1))
         
         num_adicionales = min(num_salidas - 1, len(posiciones_borde))
@@ -102,9 +142,7 @@ class Mapa:
                 
                 if 0 <= nueva_fila < self.filas and 0 <= nueva_columna < self.columnas:
                     if (nueva_fila, nueva_columna) not in visitados:
-                        casilla = self.matriz[nueva_fila][nueva_columna]
-                        
-                        if casilla.puede_pasar_jugador():
+                        if self.puede_pasar_jugador(nueva_fila, nueva_columna):
                             visitados.add((nueva_fila, nueva_columna))
                             cola.append((nueva_fila, nueva_columna))
         return False
@@ -115,25 +153,28 @@ class Mapa:
         fila_destino, columna_destino = self.pos_salida
         
         while fila_actual != fila_destino:
-            self.matriz[fila_actual][columna_actual] = Camino()
+            self.matriz[fila_actual][columna_actual] = self.CODIGO_CAMINO
             if fila_actual < fila_destino:
                 fila_actual += 1
             else:
                 fila_actual -= 1
         
         while columna_actual != columna_destino:
-            self.matriz[fila_actual][columna_actual] = Camino()
+            self.matriz[fila_actual][columna_actual] = self.CODIGO_CAMINO
             if columna_actual < columna_destino:
                 columna_actual += 1
             else:
                 columna_actual -= 1
         
-        self.matriz[fila_destino][columna_destino] = Camino()
+        self.matriz[fila_destino][columna_destino] = self.CODIGO_CAMINO
 
     def mostrar_matriz(self):
         """Muestra el mapa con símbolos"""
-        for fila in self.matriz:
-            print("".join(c.simbolo for c in fila))
+        for f in range(self.filas):
+            fila_str = ""
+            for c in range(self.columnas):
+                fila_str += self.obtener_simbolo(f, c)
+            print(fila_str)
 
     def mostrar_con_jugador_enemigo(self, jugador, enemigos=None):
         """Muestra el mapa con jugador, enemigos y trampas"""
@@ -161,9 +202,9 @@ class Mapa:
                             enemigo_aqui = True
                     
                     if not enemigo_aqui:
-                        fila_str += self.matriz[f][c].simbolo
+                        fila_str += self.obtener_simbolo(f, c)
                 else:
-                    fila_str += self.matriz[f][c].simbolo
+                    fila_str += self.obtener_simbolo(f, c)
             print(fila_str)
         print("\nLeyenda: J=Jugador | E=Enemigo | X=Trampa | #=Muro | T=Túnel | L=Liana | (espacio)=Camino")
 
@@ -176,8 +217,7 @@ class Mapa:
         posiciones = []
         for f in range(self.filas):
             for c in range(self.columnas):
-                casilla = self.matriz[f][c]
-                if casilla.puede_pasar_enemigo():
+                if self.puede_pasar_enemigo(f, c):
                     if (f, c) != self.pos_inicio and (f, c) != self.pos_salida:
                         posiciones.append((f, c))
         return posiciones
@@ -189,8 +229,8 @@ class Mapa:
         
         for f in range(self.filas):
             for c in range(self.columnas):
-                casilla = self.matriz[f][c]
-                if isinstance(casilla, Camino) or isinstance(casilla, Liana):
+                codigo = self.matriz[f][c]
+                if codigo == self.CODIGO_CAMINO or codigo == self.CODIGO_LIANA:
                     if (f, c) != self.pos_inicio and (f, c) != self.pos_salida:
                         dist = abs(f - pos_jugador[0]) + abs(c - pos_jugador[1])
                         if dist >= 5:
