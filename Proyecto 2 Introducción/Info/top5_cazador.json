@@ -1,0 +1,27 @@
+[
+    {
+        "nombre": "ghjkl",
+        "puntaje": 2600,
+        "fecha": "2025-11-28 14:09"
+    },
+    {
+        "nombre": "Alex",
+        "puntaje": 2200,
+        "fecha": "2025-11-28 19:00"
+    },
+    {
+        "nombre": "Kerzin",
+        "puntaje": 2100,
+        "fecha": "2025-11-28 12:45"
+    },
+    {
+        "nombre": "Mariela",
+        "puntaje": 2025,
+        "fecha": "2025-11-28 10:08"
+    },
+    {
+        "nombre": "111",
+        "puntaje": 1800,
+        "fecha": "2025-11-28 16:32"
+    }
+]
