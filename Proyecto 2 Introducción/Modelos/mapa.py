@@ -1,6 +1,5 @@
 import random
 from collections import deque
-from Modelos.terreno import Camino, Muro, Tunel, Liana
 
 class Mapa:
     # Códigos numéricos para la matriz (obligatorio según instrucciones)

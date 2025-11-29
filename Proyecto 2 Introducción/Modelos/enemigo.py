@@ -12,12 +12,12 @@ class Enemigo:
         
         # Tiempos de reaparición según dificultad (en segundos)
         # Fácil: 10 minutos = 600 segundos
-        # Normal: 5 minutos = 300 segundos
-        # Difícil: 3 minutos = 180 segundos
+        # Normal (intermedio): 5 segundos
+        # Difícil: 3 segundos
         self.tiempos_reaparicion = {
             "facil": 600,    # 10 minutos
-            "normal": 300,   # 5 minutos
-            "dificil": 180   # 3 minutos
+            "normal": 5,     # 5 segundos
+            "dificil": 3     # 3 segundos
         }
 
     def obtener_posicion(self):
